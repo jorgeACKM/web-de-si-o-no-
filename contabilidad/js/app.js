@@ -44,11 +44,21 @@
     i.click();
   }
   const slug = s => String(s || '').replace(/[^\w]+/g, '_').slice(0, 40);
+  // Devuelve true (y avisa) si la fecha cae en un período cerrado.
+  function bloqueado(...fechas) {
+    const f = fechas.find(x => x && C.periodoCerrado(datos(), x));
+    if (f) { toast(`El período está cerrado hasta el ${fd(cfg().cerradoHasta)}. Reabra el período en "Cierre de períodos" para modificarlo.`, 'error'); return true; }
+    return false;
+  }
   const cliente = () => S.cliente() || {};
 
   /* ---------- navegación ---------- */
-  const TABS = [['clientes', 'Clientes'], ['plan', 'Plan de cuentas'], ['ventas', 'Ventas'], ['compras', 'Compras'], ['asientos', 'Asientos y mayor'],
-    ['tc', 'Tipos de cambio'], ['balances', 'Balances'], ['f120', 'Form. 120 – IVA'], ['f500', 'Form. 500 – IRE'], ['rg90', 'RG 90 Marangatu']];
+  // [clave, nombre, grupo]
+  const TABS = [['clientes', 'Clientes', 'Datos'], ['plan', 'Plan de cuentas', 'Datos'], ['tc', 'Tipos de cambio', 'Datos'],
+    ['ventas', 'Ventas', 'Carga'], ['compras', 'Compras', 'Carga'], ['asientos', 'Asientos y mayor', 'Carga'],
+    ['balances', 'Balances', 'Informes'],
+    ['f120', 'Form. 120 – IVA', 'Impuestos'], ['f500', 'Form. 500 – IRE', 'Impuestos'], ['rg90', 'RG 90 Marangatu', 'Impuestos']];
+  const GRUPOS = ['Datos', 'Carga', 'Tesorería', 'Personal', 'Informes', 'Impuestos', 'Control'];
 
   let renderizando = false;
   function render() {
@@ -66,7 +76,7 @@
       ? db.clientes.map(c => `<option value="${c.id}" ${c.id === db.activo ? 'selected' : ''}>${esc(c.razon)} (${esc(c.ruc)})</option>`).join('')
       : '<option value="">— cree un cliente —</option>';
     if (!S.cliente()) st.tab = 'clientes';
-    $('#tabs').innerHTML = TABS.map(([k, n]) => `<button data-tab="${k}" class="${st.tab === k ? 'active' : ''}" ${!S.cliente() && k !== 'clientes' ? 'disabled' : ''}>${n}</button>`).join('');
+    $('#tabs').innerHTML = GRUPOS.map(g => { const ts = TABS.filter(t => t[2] === g); return ts.length ? `<span class="grupo"><span class="glabel">${g}</span>${ts.map(([k, n]) => `<button data-tab="${k}" class="${st.tab === k ? 'active' : ''}" ${!S.cliente() && k !== 'clientes' ? 'disabled' : ''}>${n}</button>`).join('')}</span>` : ''; }).join('');
     const v = VISTAS[st.tab];
     $('#main').innerHTML = v.html();
     if (v.bind) v.bind();
@@ -78,10 +88,20 @@
     ['ctaVentas10', 'Ventas gravadas 10%'], ['ctaVentas5', 'Ventas gravadas 5%'], ['ctaVentasEx', 'Ventas exentas'], ['ctaExportaciones', 'Exportaciones'],
     ['ctaIvaDF10', 'IVA débito fiscal 10%'], ['ctaIvaDF5', 'IVA débito fiscal 5%'], ['ctaIvaCF10', 'IVA crédito fiscal 10%'], ['ctaIvaCF5', 'IVA crédito fiscal 5%'],
     ['ctaCompras', 'Cuenta de compras por defecto'], ['ctaIvaCosto', 'IVA no computable (prorrateo)'], ['ctaResultadosAcum', 'Resultados acumulados'],
-    ['ctaAnticiposIRE', 'Anticipos de IRE'], ['ctaRetencionesIRE', 'Retenciones de IRE recibidas'], ['ctaDonaciones', 'Donaciones']
+    ['ctaAnticiposIRE', 'Anticipos de IRE'], ['ctaRetencionesIRE', 'Retenciones de IRE recibidas'], ['ctaDonaciones', 'Donaciones'],
+    ['ctaCajaME', 'Caja en moneda extranjera'], ['ctaClientesME', 'Clientes en moneda extranjera'], ['ctaProveedoresME', 'Proveedores en moneda extranjera'],
+    ['ctaDifCambioPos', 'Diferencia de cambio positiva'], ['ctaDifCambioNeg', 'Diferencia de cambio negativa'],
+    ['ctaRetIVARecibidas', 'Retenciones de IVA recibidas'], ['ctaRetADepositar', 'Retenciones a depositar (emitidas)'],
+    ['ctaIDUADepositar', 'IDU retenido a depositar'], ['ctaDividendosAPagar', 'Dividendos a pagar'],
+    ['ctaSueldos', 'Sueldos y jornales (gasto)'], ['ctaAportePatronal', 'Aporte patronal IPS (gasto)'], ['ctaAguinaldoGasto', 'Aguinaldo (gasto)'],
+    ['ctaSueldosAPagar', 'Sueldos a pagar'], ['ctaIPSAPagar', 'IPS a pagar'], ['ctaAguinaldoAPagar', 'Aguinaldos a pagar'], ['ctaDescuentosPersonal', 'Anticipos / préstamos al personal'],
+    ['ctaDepGasto', 'Depreciación (gasto por defecto)']
   ];
   const PARAMS = [['tasaIRE', 'Tasa IRE (%)'], ['limiteQuebrantoPct', 'Límite compensación de quebrantos (% renta neta)'],
-    ['pctAnticipo', 'Anticipo IRE (% por cuota)'], ['cantAnticipos', 'Cantidad de anticipos'], ['limiteDonacionesPct', 'Límite donaciones (% renta neta)']];
+    ['pctAnticipo', 'Anticipo IRE (% por cuota)'], ['cantAnticipos', 'Cantidad de anticipos'], ['limiteDonacionesPct', 'Límite donaciones (% renta neta)'],
+    ['pctIPSObrero', 'IPS aporte obrero (%)'], ['pctIPSPatronal', 'IPS aporte patronal (%)'], ['pctIDUResidente', 'IDU residentes (%)'], ['pctIDUNoResidente', 'IDU no residentes (%)'],
+    ['plazoDias', 'Plazo de crédito por defecto (días)'], ['mesesVtoIRE', 'Vencimiento DJ IRE (meses después del cierre)']];
+  const PARAMS_TXT = [['irpTramos', 'Tramos IRP (hasta:tasa;…)'], ['mesesAnticiposIRE', 'Anticipos IRE (meses después del cierre)'], ['grupoDepreciaciones', 'Grupo de cuentas de depreciaciones (flujo de efectivo)']];
 
   const vistaClientes = {
     html() {
@@ -112,7 +132,8 @@
         <p class="muted">Cada factura de compra o venta genera su asiento contable automáticamente usando estas cuentas.</p>
         <div class="form cols3">${CFG_LABELS.map(([k, n]) => `<label>${n}<input list="dl-cuentas" data-cfg="${k}" value="${esc(c[k])}"><small>${esc(nombreCta(c[k])) || '<b class="err">cuenta inexistente</b>'}</small></label>`).join('')}</div>
         <h3>Parámetros del IRE (Ley 6380/2019 – verificar vigencia)</h3>
-        <div class="form cols3">${PARAMS.map(([k, n]) => `<label>${n}<input type="number" step="any" data-cfg="${k}" value="${esc(c[k])}"></label>`).join('')}</div>
+        <div class="form cols3">${PARAMS.map(([k, n]) => `<label>${n}<input type="number" step="any" data-cfg="${k}" value="${esc(c[k])}"></label>`).join('')}
+          ${PARAMS_TXT.map(([k, n]) => `<label>${n}<input data-cfgt="${k}" value="${esc(c[k])}"></label>`).join('')}</div>
         <div class="acciones"><button id="cfg-guardar" class="primary">Guardar configuración</button></div>
       </section>` : ''}
       <section class="card"><h2>Respaldo de datos</h2>
@@ -142,6 +163,7 @@
           if (k.startsWith('cta')) { nc[k] = i.value.trim(); if (!ctaValida(nc[k])) malas.push(nc[k] || k); }
           else nc[k] = C.num(i.value);
         });
+        $$('[data-cfgt]').forEach(i => { nc[i.dataset.cfgt] = i.value.trim(); });
         if (malas.length && !confirm(`Estas cuentas no existen o no son imputables: ${malas.join(', ')}. ¿Guardar igual?`)) return;
         d.config = nc; S.save(); toast('Configuración guardada'); render();
       };
@@ -178,11 +200,12 @@
           El rubro RG 49 se hereda de la cuenta padre: alcanza con asignarlo en el nivel 3 o 4. La plantilla incluye una hoja con la lista de rubros.</p>
         </details>
         ${plan.avisos.length ? `<div class="alerta"><b>${plan.avisos.length} avisos:</b> ${plan.avisos.slice(0, 8).map(esc).join('; ')}${plan.avisos.length > 8 ? '…' : ''}</div>` : ''}
-        <div class="scroll"><table class="grid plan"><thead><tr><th>Código</th><th>Nombre</th><th>Nivel</th><th>Tipo</th><th>Imput.</th><th>Rubro RG 49 (asignado / efectivo)</th><th title="Gasto no deducible IRE">ND</th><th title="Ingreso no gravado IRE">NG</th><th></th></tr></thead><tbody>
+        <div class="scroll"><table class="grid plan"><thead><tr><th>Código</th><th>Nombre</th><th>Nivel</th><th>Tipo</th><th>Imput.</th><th>Rubro RG 49 (asignado / efectivo)</th><th title="Gasto no deducible IRE">ND</th><th title="Ingreso no gravado IRE">NG</th><th title="Cuenta en moneda extranjera (diferencia de cambio automática)">M/E</th><th></th></tr></thead><tbody>
         ${filas.map(c => `<tr class="niv${Math.min(c.nivel, 5)}"><td>${esc(c.codigo)}</td><td style="padding-left:${(c.nivel - 1) * 14 + 6}px">${esc(c.nombre)}</td><td class="c">${c.nivel}</td><td class="c">${c.tipo}</td><td class="c">${c.imputable ? '✔' : ''}</td>
           <td><select data-rg="${esc(c.codigo)}">${opts(c.rg49)}</select> <small class="muted">${esc(c.rubro)}</small></td>
           <td class="c">${c.tipo === 'E' ? `<input type="checkbox" data-nd="${esc(c.codigo)}" ${c.noDeducible ? 'checked' : ''}>` : ''}</td>
           <td class="c">${c.tipo === 'I' ? `<input type="checkbox" data-ng="${esc(c.codigo)}" ${c.noGravado ? 'checked' : ''}>` : ''}</td>
+          <td class="c">${c.imputable && (c.tipo === 'A' || c.tipo === 'P') ? `<input type="checkbox" data-me="${esc(c.codigo)}" ${c.me === true || c.me === 'S' ? 'checked' : ''}>` : ''}</td>
           <td>${c.imputable ? `<button class="mini danger" data-delc="${esc(c.codigo)}">✕</button>` : ''}</td></tr>`).join('')}
         </tbody></table></div>
         <h3>Agregar cuenta</h3>
@@ -197,6 +220,7 @@
       $$('[data-rg]').forEach(s => s.onchange = () => { cta(s.dataset.rg).rg49 = s.value; S.save(); refrescarPlan(); render(); });
       $$('[data-nd]').forEach(s => s.onchange = () => { cta(s.dataset.nd).noDeducible = s.checked; S.save(); refrescarPlan(); });
       $$('[data-ng]').forEach(s => s.onchange = () => { cta(s.dataset.ng).noGravado = s.checked; S.save(); refrescarPlan(); });
+      $$('[data-me]').forEach(s => s.onchange = () => { cta(s.dataset.me).me = s.checked; S.save(); refrescarPlan(); });
       $$('[data-delc]').forEach(b => b.onclick = () => {
         const cod = b.dataset.delc;
         const usada = C.todosLosAsientos(d).some(a => a.lineas.some(l => l.cuenta === cod));
@@ -215,8 +239,8 @@
         d.cuentas = PD.PLAN_DEFAULT.map(c => Object.assign({}, c)); S.save(); refrescarPlan(); render();
       };
       $('#p-plantilla').onclick = () => {
-        const aoa = [['Código', 'Nombre', 'Nivel', 'Imputable', 'Tipo', 'Rubro RG49', 'No deducible', 'No gravado']]
-          .concat(plan.list.map(c => [c.codigo, c.nombre, c.nivel, c.imputable ? 'S' : 'N', c.tipo, c.rg49 || '', c.noDeducible ? 'S' : '', c.noGravado ? 'S' : '']));
+        const aoa = [['Código', 'Nombre', 'Nivel', 'Imputable', 'Tipo', 'Rubro RG49', 'No deducible', 'No gravado', 'Moneda extranjera']]
+          .concat(plan.list.map(c => [c.codigo, c.nombre, c.nivel, c.imputable ? 'S' : 'N', c.tipo, c.rg49 || '', c.noDeducible ? 'S' : '', c.noGravado ? 'S' : '', c.me === true || c.me === 'S' ? 'S' : '']));
         const rub = [['Clave', 'Rubro', 'Grupo']].concat(PD.RUBROS_RG49.map(r => [r.key, r.nombre, r.grupo]));
         X.descargar([{ nombre: 'Plan de cuentas', ws: X.hoja(aoa, { anchos: [16, 45, 6, 10, 6, 14, 12, 12] }) }, { nombre: 'Rubros RG49', ws: X.hoja(rub, { anchos: [14, 55, 8] }) }],
           `plan_de_cuentas_${slug(cliente().razon)}.xlsx`);
@@ -259,17 +283,20 @@
         <td><input id="q-ruc" value="${esc(base.ruc)}" size="11" placeholder="RUC-DV"></td>
         <td><input id="q-razon" value="${esc(base.razon)}" size="22" placeholder="Razón social"></td>
         <td><select id="q-cond"><option value="CONTADO">Contado</option><option value="CREDITO" ${base.condicion === 'CREDITO' ? 'selected' : ''}>Crédito</option></select></td>
-        <td><input id="q-g10" class="n" value="${base.g10 ? fmt(base.g10) : ''}" size="11" inputmode="numeric"></td>
-        <td><input id="q-g5" class="n" value="${base.g5 ? fmt(base.g5) : ''}" size="10" inputmode="numeric"></td>
-        <td><input id="q-ex" class="n" value="${base.exenta ? fmt(base.exenta) : ''}" size="10" inputmode="numeric"></td>
+        <td><input id="q-g10" class="n" value="${base.g10 ? (base.moneda === 'USD' ? base.g10 : fmt(base.g10)) : ''}" size="11" inputmode="numeric"></td>
+        <td><input id="q-g5" class="n" value="${base.g5 ? (base.moneda === 'USD' ? base.g5 : fmt(base.g5)) : ''}" size="10" inputmode="numeric"></td>
+        <td><input id="q-ex" class="n" value="${base.exenta ? (base.moneda === 'USD' ? base.exenta : fmt(base.exenta)) : ''}" size="10" inputmode="numeric"></td>
         <td>${esCompra
           ? `<select id="q-afec"><option value="GRAVADA">Op. gravadas</option><option value="MIXTA" ${base.afectacion === 'MIXTA' ? 'selected' : ''}>Mixta (prorrateo)</option><option value="EXENTA" ${base.afectacion === 'EXENTA' ? 'selected' : ''}>Op. exentas</option></select>`
-          : `<input id="q-exp" class="n" value="${base.exportacion ? fmt(base.exportacion) : ''}" size="10" inputmode="numeric">`}</td>
+          : `<input id="q-exp" class="n" value="${base.exportacion ? (base.moneda === 'USD' ? base.exportacion : fmt(base.exportacion)) : ''}" size="10" inputmode="numeric">`}</td>
         <td><input id="q-cta" list="dl-cuentas" value="${esc(base.cuenta)}" size="12" placeholder="${esCompra ? esc(cfg().ctaCompras) : '(por tasa)'}"></td>
         <td><button id="q-ok" class="primary">${doc ? 'Actualizar' : 'Agregar ⏎'}</button>${doc ? ' <button id="q-cancel">Cancelar</button>' : ''}</td>
       </tr>
       <tr class="entrada-info"><td colspan="13">
         <label class="chk inline"><input type="checkbox" id="q-elec" ${base.electronico ? 'checked' : ''}> Electrónico/virtual (SIFEN – no va en RG 90)</label>
+        <label class="chk inline">Moneda <select id="q-mon"><option value="">Gs.</option><option value="USD" ${base.moneda === 'USD' ? 'selected' : ''}>US$</option></select></label>
+        <span id="q-tcbox" ${base.moneda === 'USD' ? '' : 'hidden'}>T.C. <input id="q-tc" class="n" size="7" value="${esc(base.tc || '')}"> <small class="muted">(montos en US$)</small></span>
+        <span id="q-sug" class="muted"></span>
         <span id="q-asoc" ${base.tipoDoc === 'NOTA_CREDITO' ? '' : 'hidden'}> · Comprobante asociado <input id="q-asocnum" value="${esc(base.asocNumero)}" size="15" placeholder="001-001-0000001">
           Timbrado asoc. <input id="q-asoctim" value="${esc(base.asocTimbrado)}" size="8" maxlength="8"></span>
         <br><span id="q-info"></span></td></tr>`;
@@ -284,7 +311,7 @@
           tot.g10 += s * d.g10; tot.iva10 += s * d.iva10; tot.g5 += s * d.g5; tot.iva5 += s * d.iva5; tot.ex += s * d.exenta; tot.exp += s * d.exportacion; tot.total += s * d.total;
           const malaCta = x.cuenta && !ctaValida(x.cuenta);
           return `<tr class="${st.editId === x.id ? 'sel' : ''} ${C.esNC(x) ? 'nc' : ''}" data-id="${x.id}">
-            <td>${fd(x.fecha)}</td><td>${TIPOS_DOC[x.tipoDoc] || x.tipoDoc}${x.electronico ? ' <span class="badge" title="Electrónico/virtual">e</span>' : ''}</td><td>${esc(x.timbrado)}</td><td>${esc(x.numero)}</td><td>${esc(x.ruc)}</td><td>${esc(x.razon)}</td>
+            <td>${fd(x.fecha)}</td><td>${TIPOS_DOC[x.tipoDoc] || x.tipoDoc}${x.electronico ? ' <span class="badge" title="Electrónico/virtual">e</span>' : ''}${C.esME(x) ? ` <span class="badge usd" title="US$ ${x.tc}">US$</span>` : ''}</td><td>${esc(x.timbrado)}</td><td>${esc(x.numero)}</td><td>${esc(x.ruc)}</td><td>${esc(x.razon)}</td>
             <td>${x.condicion === 'CREDITO' ? 'Crédito' : 'Contado'}</td><td class="n">${fmtZ(d.g10)}</td><td class="n">${fmtZ(d.g5)}</td><td class="n">${fmtZ(d.exenta)}</td>
             <td>${esCompra ? ({ GRAVADA: 'Gravadas', MIXTA: 'Mixta', EXENTA: 'Exentas' }[x.afectacion] || 'Gravadas') : `<span class="n">${fmtZ(d.exportacion)}</span>`}</td>
             <td class="${malaCta ? 'err' : ''}" title="${esc(nombreCta(x.cuenta))}">${esc(x.cuenta)}</td>
@@ -316,7 +343,7 @@
         $('#per').onchange = e => { if (e.target.value) { st.periodo = e.target.value; st.editId = null; render(); } };
         const v = id => $(id) ? $(id).value : '';
         function info() {
-          const doc = { g10: C.num(v('#q-g10')), g5: C.num(v('#q-g5')), exenta: C.num(v('#q-ex')), exportacion: C.num(v('#q-exp')) };
+          const doc = { g10: C.num(v('#q-g10')), g5: C.num(v('#q-g5')), exenta: C.num(v('#q-ex')), exportacion: C.num(v('#q-exp')), moneda: v('#q-mon'), tc: C.num(v('#q-tc')) };
           const x = C.desglose(doc);
           const ruc = v('#q-ruc').trim();
           const okRuc = C.rucValido(ruc);
@@ -346,11 +373,23 @@
               if (t.electronico !== undefined) $('#q-elec').checked = !!t.electronico;
             }
           }
+          sugerir();
           info();
         });
         $('#q-tipo').addEventListener('change', () => { $('#q-asoc').hidden = v('#q-tipo') !== 'NOTA_CREDITO'; });
+        $('#q-mon').addEventListener('change', () => {
+          $('#q-tcbox').hidden = v('#q-mon') !== 'USD';
+          if (v('#q-mon') === 'USD' && !v('#q-tc')) $('#q-tc').value = C.tcDelMes(d, (v('#q-fecha') || st.periodo).slice(0, 7)) || '';
+          info();
+        });
+        const sugerir = () => {
+          if (!esCompra || v('#q-cta')) return;
+          const sg = C.sugerirCuenta(d, v('#q-ruc').trim(), v('#q-razon'), plan);
+          if (sg) { $('#q-cta').value = sg.cuenta; $('#q-sug').textContent = ` · Cuenta sugerida ${sg.cuenta} ${nombreCta(sg.cuenta)} (${sg.motivo})`; info(); }
+        };
+        $('#q-razon').addEventListener('change', sugerir);
         $('#q-num').addEventListener('change', () => { $('#q-num').value = C.formatearNumeroComprobante(v('#q-num')); info(); });
-        ['#q-g10', '#q-g5', '#q-ex', '#q-exp'].forEach(id => $(id) && $(id).addEventListener('blur', () => { const n = C.num(v(id)); $(id).value = n ? fmt(n) : ''; }));
+        ['#q-g10', '#q-g5', '#q-ex', '#q-exp'].forEach(id => $(id) && $(id).addEventListener('blur', () => { if (v('#q-mon') === 'USD') return; const n = C.num(v(id)); $(id).value = n ? fmt(n) : ''; }));
 
         function guardarDoc() {
           const doc = {
@@ -360,9 +399,15 @@
             exportacion: esCompra ? 0 : C.r0(C.num(v('#q-exp'))), cuenta: v('#q-cta').trim(),
             electronico: $('#q-elec').checked
           };
+          if (v('#q-mon') === 'USD') {
+            doc.moneda = 'USD'; doc.tc = C.num(v('#q-tc'));
+            if (!doc.tc) return toast('Ingrese el tipo de cambio del comprobante en US$', 'error');
+            ['g10', 'g5', 'exenta', 'exportacion'].forEach(k => { doc[k] = C.r2(C.num(v({ g10: '#q-g10', g5: '#q-g5', exenta: '#q-ex', exportacion: '#q-exp' }[k]))); });
+          }
           if (doc.tipoDoc === 'NOTA_CREDITO') { doc.asocNumero = C.formatearNumeroComprobante(v('#q-asocnum')); doc.asocTimbrado = v('#q-asoctim').trim(); }
           if (esCompra) doc.afectacion = v('#q-afec');
           if (!doc.fecha) return toast('Ingrese la fecha', 'error');
+          if (bloqueado(doc.fecha, st.editId && (lista().find(x => x.id === st.editId) || {}).fecha)) return;
           if (!(doc.g10 || doc.g5 || doc.exenta || doc.exportacion)) return toast('Ingrese al menos un importe', 'error');
           if (doc.cuenta && !ctaValida(doc.cuenta)) return toast('La cuenta no existe o no es imputable', 'error');
           const dup = lista().find(x => x.id !== st.editId && x.numero && x.numero === doc.numero && x.ruc === doc.ruc && x.tipoDoc === doc.tipoDoc && x.timbrado === doc.timbrado);
@@ -394,12 +439,14 @@
         $$('[data-ed]').forEach(b => b.onclick = () => { st.editId = b.dataset.ed; render(); $('#q-g10').focus(); });
         $$('[data-rm]').forEach(b => b.onclick = () => {
           const x = lista().find(y => y.id === b.dataset.rm);
+          if (bloqueado(x.fecha)) return;
           if (!confirm(`¿Eliminar ${TIPOS_DOC[x.tipoDoc]} ${x.numero} de ${x.razon}?`)) return;
           d[tipo] = lista().filter(y => y.id !== x.id); S.save(); render();
         });
 
         function incorporar(res) {
           let dup = 0;
+          res.docs = res.docs.filter(doc => { if (C.periodoCerrado(d, doc.fecha)) { res.errores.push(`${doc.numero}: período cerrado`); return false; } return true; });
           res.docs.forEach(doc => {
             if (doc.numero && lista().some(x => x.numero === doc.numero && x.ruc === doc.ruc && x.tipoDoc === doc.tipoDoc && x.timbrado === doc.timbrado)) { dup++; return; }
             doc.id = S.uid();
@@ -466,9 +513,9 @@
         <div class="form cols3"><label>Fecha <input type="date" id="a-fecha" value="${esc(ed ? ed.fecha : (st.periodo === hoy().slice(0, 7) ? hoy() : C.finDeMes(st.periodo)))}"></label>
           <label>Concepto <input id="a-conc" value="${esc(ed ? ed.concepto : '')}"></label>
           <label class="chk"><input type="checkbox" id="a-cierre" ${ed && ed.cierre ? 'checked' : ''}> Asiento de refundición/cierre (se excluye de balances)</label></div>
-        <table class="grid asiento"><thead><tr><th>Cuenta</th><th>Nombre</th><th>Debe</th><th>Haber</th><th></th></tr></thead><tbody id="a-lineas">
+        <table class="grid asiento"><thead><tr><th>Cuenta</th><th>Nombre</th><th>Debe</th><th>Haber</th><th title="Solo para cuentas en moneda extranjera: importe en US$ (+ debe / − haber)">US$ (M/E)</th><th></th></tr></thead><tbody id="a-lineas">
           ${lineas.map(l => filaLinea(l)).join('')}
-        </tbody><tfoot><tr><td colspan="2"><button id="a-add">+ línea</button> <span id="a-dif"></span></td><td class="n" id="a-td"></td><td class="n" id="a-th"></td><td></td></tr></tfoot></table>
+        </tbody><tfoot><tr><td colspan="2"><button id="a-add">+ línea</button> <span id="a-dif"></span></td><td class="n" id="a-td"></td><td class="n" id="a-th"></td><td></td><td></td></tr></tfoot></table>
         <div class="acciones"><button id="a-ok" class="primary">${ed ? 'Actualizar asiento' : 'Guardar asiento'}</button> ${ed ? '<button id="a-cancel">Cancelar</button>' : ''}</div>
       </section>
       <section class="card"><h2>Libro diario</h2>
@@ -515,10 +562,11 @@
       $('#a-ok').onclick = () => {
         const a = {
           fecha: $('#a-fecha').value, concepto: $('#a-conc').value.trim(), cierre: $('#a-cierre').checked,
-          lineas: $$('#a-lineas tr').map(tr => ({ cuenta: $('.l-cta', tr).value.trim(), debe: C.r0(C.num($('.l-d', tr).value)), haber: C.r0(C.num($('.l-h', tr).value)) }))
-            .filter(l => l.cuenta && (l.debe || l.haber))
+          lineas: $$('#a-lineas tr').map(tr => { const l = { cuenta: $('.l-cta', tr).value.trim(), debe: C.r0(C.num($('.l-d', tr).value)), haber: C.r0(C.num($('.l-h', tr).value)) }; const me = C.num($('.l-me', tr).value); if (me) l.me = C.r2(me); return l; })
+            .filter(l => l.cuenta && (l.debe || l.haber || l.me))
         };
         if (a.lineas.length < 2) return toast('El asiento necesita al menos dos líneas', 'error');
+        if (bloqueado(a.fecha, st.asientoEdit && (d.asientos.find(x => x.id === st.asientoEdit) || {}).fecha)) return;
         const errs = C.validarAsiento(a, plan);
         if (errs.length) return toast(errs.join('. '), 'error');
         if (st.asientoEdit) Object.assign(d.asientos.find(x => x.id === st.asientoEdit), a);
@@ -526,7 +574,7 @@
         st.asientoEdit = null; S.save(); toast('Asiento guardado'); render();
       };
       $$('[data-aed]').forEach(b => b.onclick = () => { st.asientoEdit = b.dataset.aed; render(); window.scrollTo(0, 0); });
-      $$('[data-arm]').forEach(b => b.onclick = () => { if (confirm('¿Eliminar el asiento?')) { d.asientos = d.asientos.filter(a => a.id !== b.dataset.arm); S.save(); render(); } });
+      $$('[data-arm]').forEach(b => b.onclick = () => { if (bloqueado((d.asientos.find(a => a.id === b.dataset.arm) || {}).fecha)) return; if (confirm('¿Eliminar el asiento?')) { d.asientos = d.asientos.filter(a => a.id !== b.dataset.arm); S.save(); render(); } });
 
       const exportarDiario = (desde, hasta) => {
         const aoa = X.encabezado(cliente(), 'LIBRO DIARIO', `Período: ${fd(desde)} al ${fd(hasta)}`).concat([['N°', 'Fecha', 'Concepto', 'Origen', 'Cuenta', 'Nombre de la cuenta', 'Debe', 'Haber']]);
@@ -596,6 +644,7 @@
   function filaLinea(l) {
     return `<tr><td><input class="l-cta" list="dl-cuentas" value="${esc(l.cuenta || '')}" size="14"></td><td class="l-nom">${esc(nombreCta(l.cuenta))}</td>
       <td><input class="l-d n" value="${l.debe ? fmt(l.debe) : ''}" size="14" inputmode="numeric"></td><td><input class="l-h n" value="${l.haber ? fmt(l.haber) : ''}" size="14" inputmode="numeric"></td>
+      <td><input class="l-me n" value="${l.me ? l.me : ''}" size="8" inputmode="decimal"></td>
       <td><button class="mini danger l-rm" tabindex="-1">✕</button></td></tr>`;
   }
 
@@ -605,7 +654,9 @@
       const tc = datos().tiposCambio, y = st.anioTC;
       return `<section class="card"><h2>Tipos de cambio (Gs. por US$)</h2>
         <p class="muted">Cargue el tipo de cambio de cierre de cada mes (p. ej. comprador publicado por la DNIT/BCP al último día hábil). Se usa para expresar los balances en dólares.</p>
-        <div class="acciones"><label>Año <input type="number" id="tc-anio" value="${y}" style="width:6em"></label> <button id="tc-imp">Importar Excel (Período | Tipo de cambio)</button></div>
+        <div class="acciones"><label>Año <input type="number" id="tc-anio" value="${y}" style="width:6em"></label> <button id="tc-imp">Importar Excel (Período | Tipo de cambio)</button>
+          <button id="tc-web">Obtener cotización referencial en línea</button> <button id="tc-fill">Completar meses vacíos con el último T.C.</button></div>
+        <p class="muted">La cotización en línea es <b>referencial</b> (mercado, no oficial). Para estados financieros y DJ use la publicada por la DNIT/BCP.</p>
         <table class="grid" style="max-width:420px"><thead><tr><th>Mes</th><th>Gs. por US$</th></tr></thead><tbody>
         ${MESES.map((m, i) => { const k = `${y}-${C.pad(i + 1)}`; return `<tr><td>${m} ${y}</td><td><input class="n" data-tc="${k}" value="${tc[k] ? fmt2(tc[k]) : ''}"></td></tr>`; }).join('')}
         </tbody></table></section>`;
@@ -613,6 +664,23 @@
     bind() {
       const d = datos();
       $('#tc-anio').onchange = e => { st.anioTC = +e.target.value; render(); };
+      $('#tc-web').onclick = async () => {
+        try {
+          const r = await fetch('https://open.er-api.com/v6/latest/USD');
+          const j = await r.json();
+          const v = j && j.rates && j.rates.PYG;
+          if (!v) throw new Error('respuesta sin cotización PYG');
+          const per = hoy().slice(0, 7);
+          if (confirm(`Cotización referencial: ${fmt2(v)} Gs/US$ (${j.time_last_update_utc || ''}). ¿Guardarla para ${per}?`)) { d.tiposCambio[per] = Math.round(v * 100) / 100; S.save(); render(); }
+        } catch (e) { toast('No se pudo obtener la cotización en línea: ' + e.message, 'error'); }
+      };
+      $('#tc-fill').onclick = () => {
+        let ult = 0, n = 0;
+        const claves = Object.keys(d.tiposCambio).sort();
+        if (!claves.length) return toast('No hay ningún tipo de cambio cargado', 'error');
+        for (let p = claves[0]; p <= `${st.anioTC}-12`; p = C.mesSiguiente(p)) { if (d.tiposCambio[p]) ult = d.tiposCambio[p]; else if (ult && p <= hoy().slice(0, 7)) { d.tiposCambio[p] = ult; n++; } }
+        S.save(); render(); toast(`${n} meses completados`);
+      };
       $$('[data-tc]').forEach(i => i.onchange = () => { const n = C.num(i.value); if (n) d.tiposCambio[i.dataset.tc] = n; else delete d.tiposCambio[i.dataset.tc]; S.save(); toast('Tipo de cambio guardado'); });
       $('#tc-imp').onclick = () => pedirArchivo('.xlsx,.xls,.csv', async f => {
         try {
@@ -645,9 +713,11 @@
         <p class="muted">Las cuentas patrimoniales se acumulan hasta la fecha de corte; las de resultado desde el inicio del ejercicio que contiene esa fecha. Si el T.C. está vacío se toma de "Tipos de cambio" (mes de la fecha de corte).</p>
         <div class="acciones">
           <button id="b-ver4" class="primary">Ver balance por nivel</button> <button id="b-exp4">Exportar balance nivel ${st.nivel} (Gs. y US$)</button>
-          <button id="b-ver49" class="primary">Ver Balance General RG 49</button> <button id="b-exp49">Exportar RG 49 (Excel)</button>
+          <button id="b-ver49" class="primary">Ver estados RG 49 (balance, resultados, flujo, patrimonio)</button> <button id="b-exp49">Exportar estados RG 49 + notas (Excel)</button>
           <label class="chk"><input type="checkbox" id="b-usd" ${st.usdRG49 ? 'checked' : ''}> RG 49 con columnas en US$</label>
         </div>
+        <details><summary>Texto de notas adicionales / hechos posteriores (se incluye en la hoja "Notas")</summary>
+          <textarea id="b-notas" rows="4">${esc(cfg().notasTexto || '')}</textarea></details>
         <div id="b-res"></div></section>`;
     },
     bind() {
@@ -657,6 +727,7 @@
       };
       ['#b-c1', '#b-c2'].forEach(id => $(id).onchange = () => { leer(); st.tc1 = tcDe(st.corte1); st.tc2 = tcDe(st.corte2); render(); });
       $('#b-niv').onchange = () => { leer(); render(); };
+      $('#b-notas').onchange = e => { const d = datos(); d.config = Object.assign({}, d.config, { notasTexto: e.target.value }); S.save(); };
       const bal = () => { leer(); return C.balanceComparativo(datos(), plan, [{ hasta: st.corte1, tc: st.tc1 }, { hasta: st.corte2, tc: st.tc2 }], st.nivel); };
       const rg = () => { leer(); const a = C.todosLosAsientos(datos()); return [C.rubrosAl(datos(), plan, st.corte2, a), C.rubrosAl(datos(), plan, st.corte1, a)]; };
       const varPct = (a, b) => b ? (a - b) / Math.abs(b) : null;
@@ -696,8 +767,17 @@
           : f.val ? `<tr class="${f.tipo}"><td>${f.nombre}</td>${cols(f.val(act), f.val(ant))}</tr>` : `<tr class="${f.tipo}"><td colspan="${usd ? 5 : 3}">${f.nombre}</td></tr>`).join('');
         const er = C.estructuraER().map(f => `<tr class="${f.total ? 'total' : ''}"><td class="${f.total ? '' : 'ind'}">${f.nombre}</td>${cols(f.val(act), f.val(ant))}</tr>`).join('');
         const alerta = [act, ant].filter(x => x.tot.diferencia).map(x => `El balance al ${fd(x.hasta)} no cuadra (diferencia ${fmt(x.tot.diferencia)}).`).join(' ');
+        const fe = C.flujoEfectivo(datos(), plan, st.corte1, st.corte2), ev = C.evolucionPN(datos(), plan, st.corte1, st.corte2);
+        const sec = (t, filas, tot) => `<tr class="subtitulo"><td colspan="2">${t}</td></tr>${filas.map(r => `<tr><td class="ind">${esc(r[0])}</td><td class="n">${fmt(r[1])}</td></tr>`).join('')}<tr class="total"><td>Flujo neto ${t.toLowerCase()}</td><td class="n">${fmt(tot)}</td></tr>`;
         $('#b-res').innerHTML = `${alerta ? `<div class="alerta">${alerta}</div>` : ''}<h3>Balance General comparativo (RG 49/2014)</h3><table class="grid rg49">${head}${bg}</table>
-          <h3>Estado de Resultados comparativo</h3><table class="grid rg49">${head}${er}</table>`;
+          <h3>Estado de Resultados comparativo</h3><table class="grid rg49">${head}${er}</table>
+          <h3>Estado de Flujos de Efectivo (método indirecto) – del ${fd(st.corte1)} al ${fd(st.corte2)}</h3>
+          <table class="grid rg49">${sec('DE ACTIVIDADES OPERATIVAS', fe.op, fe.tOp)}${sec('DE ACTIVIDADES DE INVERSIÓN', fe.inv, fe.tInv)}${sec('DE ACTIVIDADES DE FINANCIACIÓN', fe.fin, fe.tFin)}
+            <tr class="gran"><td>Variación neta de disponibilidades</td><td class="n">${fmt(fe.variacion)}</td></tr><tr><td>Disponibilidades al inicio</td><td class="n">${fmt(fe.inicial)}</td></tr><tr class="gran"><td>Disponibilidades al cierre</td><td class="n">${fmt(fe.final)}</td></tr></table>
+          ${fe.control ? `<div class="alerta">El flujo no concilia con la variación de disponibilidades (diferencia ${fmt(fe.control)}).</div>` : ''}
+          <h3>Estado de Evolución del Patrimonio Neto</h3>
+          <div class="scroll"><table class="grid rg49"><tr><th>Concepto</th>${ev.columnas.map(c => `<th>${c}</th>`).join('')}</tr>
+            ${ev.filas.map((r, i) => `<tr class="${i === 0 || i === ev.filas.length - 1 ? 'total' : ''}"><td>${esc(r[0])}</td>${r[1].map(v => `<td class="n">${fmt(v)}</td>`).join('')}</tr>`).join('')}</table></div>`;
       };
       $('#b-exp49').onclick = () => {
         const [act, ant] = rg();
@@ -717,9 +797,33 @@
         });
         const anchos = [55, 18, 18, 16, 9, 15, 15];
         const op = { anchos, usdCols: [5, 6], pctCols: [4] };
+        const d = datos(), fe = C.flujoEfectivo(d, plan, st.corte1, st.corte2), ev = C.evolucionPN(d, plan, st.corte1, st.corte2);
+        const flujo = [['Concepto', 'Importe Gs.']];
+        [['ACTIVIDADES OPERATIVAS', fe.op, fe.tOp], ['ACTIVIDADES DE INVERSIÓN', fe.inv, fe.tInv], ['ACTIVIDADES DE FINANCIACIÓN', fe.fin, fe.tFin]].forEach(([t, f, tot]) => {
+          flujo.push([`FLUJO DE ${t}`]); f.forEach(r => flujo.push(['     ' + r[0], C.r0(r[1])])); flujo.push([`Flujo neto de ${t.toLowerCase()}`, C.r0(tot)], []);
+        });
+        flujo.push(['VARIACIÓN NETA DE DISPONIBILIDADES', C.r0(fe.variacion)], ['Disponibilidades al inicio', C.r0(fe.inicial)], ['Disponibilidades al cierre', C.r0(fe.final)]);
+        const evo = [['Concepto'].concat(ev.columnas)].concat(ev.filas.map(r => [r[0]].concat(r[1].map(C.r0))));
+        // Notas a los estados financieros
+        const cli = cliente(), ini = C.inicioEjercicio(st.corte2, cli.cierreMes);
+        const notas = [['NOTAS A LOS ESTADOS FINANCIEROS'], [],
+          ['NOTA 1 – INFORMACIÓN GENERAL'], [`${cli.razon || ''}, RUC ${cli.ruc || ''}. Actividad principal: ${cli.actividad || '—'}. Ejercicio económico con cierre en ${MESES[(+cli.cierreMes || 12) - 1].toLowerCase()}.`], [],
+          ['NOTA 2 – BASES DE PREPARACIÓN'], ['Los estados financieros se presentan en guaraníes, en forma comparativa con el ejercicio anterior, conforme a los modelos de la Resolución General N° 49/2014 de la DNIT y a las normas contables vigentes en Paraguay.'],
+          [`Los saldos en moneda extranjera se valúan al tipo de cambio de cierre: ${fmt2(st.tc2) || 's/d'} Gs/US$ al ${fd(st.corte2)} y ${fmt2(st.tc1) || 's/d'} Gs/US$ al ${fd(st.corte1)}. Las diferencias de cambio se imputan a resultados.`], [],
+          ['NOTA 3 – PRINCIPALES CRITERIOS DE VALUACIÓN'], ['Disponibilidades y créditos: valor nominal. Bienes de uso: costo de adquisición menos depreciación acumulada calculada por el método de línea recta según la vida útil estimada. Deudas: valor nominal más intereses devengados.'], [],
+          ['NOTA 4 – COMPOSICIÓN DE RUBROS'], ['Ver hoja "Detalle por rubro".'], [],
+          ['NOTA 5 – BIENES DE USO'], ['Descripción', 'Alta', 'Vida útil', 'Valor inicio', 'Altas', 'Bajas', 'Valor cierre', 'Dep. acum. inicio', 'Dep. ejercicio', 'Dep. acum. cierre', 'Valor neto']];
+        C.cuadroBienes(d, ini, st.corte2).forEach(b => notas.push([b.descripcion, fd(b.fechaAlta), b.vidaUtil, b.valorIni, b.altas, b.bajas, b.valorFin, b.depIni, b.depEjercicio, b.depFin, b.neto]));
+        notas.push([], ['NOTA 6 – POSICIÓN EN MONEDA EXTRANJERA'], ['Cuenta', 'Nombre', 'US$', 'Gs.']);
+        C.posicionME(d, st.corte2).forEach(x => notas.push([x.codigo, x.nombre, C.r2(x.me), C.r0(x.gs)]));
+        notas.push([], ['NOTA 7 – OTRAS NOTAS Y HECHOS POSTERIORES']);
+        String(cfg().notasTexto || 'No existen hechos posteriores al cierre que afecten significativamente los estados financieros.').split('\n').forEach(l => notas.push([l]));
         X.descargar([
           { nombre: 'Balance General', ws: X.hoja(enc('BALANCE GENERAL COMPARATIVO (Formato RG 49/2014)').concat([head], bg), op) },
           { nombre: 'Estado de Resultados', ws: X.hoja(enc('ESTADO DE RESULTADOS COMPARATIVO (Formato RG 49/2014)').concat([head], er), op) },
+          { nombre: 'Flujo de efectivo', ws: X.hoja(enc('ESTADO DE FLUJOS DE EFECTIVO – MÉTODO INDIRECTO').concat(flujo), { anchos: [60, 18] }) },
+          { nombre: 'Evolución del PN', ws: X.hoja(enc('ESTADO DE EVOLUCIÓN DEL PATRIMONIO NETO').concat(evo), { anchos: [48, 18, 18, 18, 18, 18] }) },
+          { nombre: 'Notas', ws: X.hoja(enc('NOTAS A LOS ESTADOS FINANCIEROS').concat(notas), { anchos: [40, 14, 10, 15, 15, 15, 15, 15, 15, 15, 15] }) },
           { nombre: 'Detalle por rubro', ws: X.hoja(enc('COMPOSICIÓN DE RUBROS (para notas)').concat(det), { anchos: [45, 14, 40, 17, 17] }) }
         ], `balance_RG49_${st.corte1}_${st.corte2}_${slug(cliente().razon)}.xlsx`);
       };
@@ -743,7 +847,7 @@
         <div class="form cols4">
           ${inp('saldoAnterior', 'Cas. 46 – Saldo técnico período anterior', `automático: ${fmt(f.k.c46)}`)}
           ${inp('saldoAnteriorFin', 'Cas. 51 – Saldo financiero período anterior', `automático: ${fmt(f.k.c51)}`)}
-          ${inp('retenciones', 'Cas. 52 – Retenciones computables')}
+          ${inp('retenciones', 'Cas. 52 – Retenciones computables', `de Retenciones: ${fmt(C.retencionesDelMes ? C.retencionesDelMes(d, st.periodo, 'IVA') : 0)}`)}
           ${inp('percepciones', 'Cas. 169 – Percepciones computables')}
           ${inp('remision', 'Cas. 167 – Saldo a remitir al fisco (Art. 91)')}
           ${inp('anexoExportador', 'Cas. 49 – IVA crédito Anexo Exportador (cas. 148)')}
@@ -934,11 +1038,27 @@
     asientos: vistaAsientos, tc: vistaTC, balances: vistaBalances, f120: vistaF120, f500: vistaF500, rg90: vistaRG90
   };
 
+  /* ---------- contexto para módulos adicionales (app-ext.js) ---------- */
+  window.App = {
+    C, S, X, PD, $, $$, esc, fmt, fmtZ, fmt2, fd, hoy, MESES, TIPOS_DOC, st, toast, datos, cfg, refrescarPlan, nombreCta, ctaValida,
+    pedirArchivo, slug, cliente, render, bloqueado, VISTAS, TABS,
+    get plan() { return plan; },
+    registrar(clave, nombre, grupo, vista, despuesDe) {
+      VISTAS[clave] = vista;
+      const i = despuesDe ? TABS.findIndex(t => t[0] === despuesDe) : -1;
+      if (i >= 0) TABS.splice(i + 1, 0, [clave, nombre, grupo]); else TABS.push([clave, nombre, grupo]);
+    }
+  };
+
   /* ---------- inicio ---------- */
+  document.addEventListener('DOMContentLoaded', iniciar);
+  async function iniciar() {
+  if (S.iniciar) await S.iniciar();
   S.load();
   refrescarPlan();
   if (S.cliente()) st.tab = 'ventas';
   $('#tabs').addEventListener('click', e => { const b = e.target.closest('button[data-tab]'); if (b && !b.disabled) { st.tab = b.dataset.tab; st.editId = null; render(); } });
   $('#selCliente').onchange = e => { if (e.target.value) { S.db().activo = e.target.value; S.save(); refrescarPlan(); st.editId = null; st.asientoEdit = null; render(); } };
   render();
+  }
 })();

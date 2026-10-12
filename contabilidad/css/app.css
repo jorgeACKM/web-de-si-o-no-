@@ -9,7 +9,9 @@ body { margin: 0; font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, s
 .brand { font-size: 20px; font-weight: 700; }
 .brand small { font-weight: 400; opacity: .8; font-size: 13px; margin-left: 6px; }
 .cliente-sel select { margin-left: 6px; padding: 5px; min-width: 260px; max-width: 70vw; }
-.tabs { display: flex; flex-wrap: wrap; gap: 2px; padding: 0 16px; background: var(--primary-2); }
+.tabs { display: flex; flex-wrap: wrap; gap: 2px 14px; padding: 4px 16px 0; background: var(--primary-2); }
+.tabs .grupo { display: inline-flex; align-items: flex-end; flex-wrap: wrap; }
+.tabs .glabel { color: #9fd3c3; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; align-self: center; margin-right: 4px; }
 .tabs button { background: transparent; color: #dcefe9; border: 0; padding: 10px 14px; cursor: pointer; font-size: 14px; border-radius: 0; }
 .tabs button.active { background: var(--bg); color: var(--text); font-weight: 600; border-radius: 6px 6px 0 0; }
 .tabs button:disabled { opacity: .4; cursor: default; }
@@ -94,3 +96,6 @@ tr.entrada-info input { padding: 2px 4px; font-size: 12px; }
 .badge { display: inline-block; background: var(--primary); color: #fff; border-radius: 3px; padding: 0 4px; font-size: 11px; }
 table.f120.v4 { margin-bottom: 14px; }
 table.f120 td.cas { color: var(--muted); font-size: 11px; text-align: right; width: 34px; padding-right: 2px; }
+.badge.usd { background: #2a5d9f; }
+button.danger { color: var(--danger); }
+section.card details summary { cursor: pointer; }

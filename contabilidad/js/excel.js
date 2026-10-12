@@ -43,7 +43,8 @@
     tipo: ['tipo', 'naturaleza'],
     rg49: ['rubrorg49', 'rg49', 'rubro'],
     noDeducible: ['nodeducible', 'nodeducibleire', 'nd'],
-    noGravado: ['nogravado', 'nogravadoire', 'ng']
+    noGravado: ['nogravado', 'nogravadoire', 'ng'],
+    me: ['monedaextranjera', 'me']
   };
   X.importarPlan = function (wb) {
     const filas = X.filas(wb);
@@ -67,7 +68,7 @@
         imputable: m.map.imputable !== undefined ? siNo(g('imputable')) : undefined,
         tipo: /^(A|P|PN|I|E)$/.test(tipo) ? tipo : undefined,
         rg49: claves.has(rg) ? rg : '',
-        noDeducible: siNo(g('noDeducible')), noGravado: siNo(g('noGravado'))
+        noDeducible: siNo(g('noDeducible')), noGravado: siNo(g('noGravado')), me: siNo(g('me'))
       });
     }
     if (!out.length) throw new Error('El archivo no contiene cuentas.');
@@ -78,15 +79,15 @@
   X.COLS_VENTAS = ['Fecha', 'Tipo', 'Timbrado', 'Número', 'RUC', 'Razón social', 'Condición', 'Gravada 10% (IVA incl.)', 'Gravada 5% (IVA incl.)', 'Exenta', 'Exportación', 'Cuenta', 'Concepto', 'Electrónico (S/N)', 'Comprobante asociado', 'Timbrado asociado'];
   X.COLS_COMPRAS = ['Fecha', 'Tipo', 'Timbrado', 'Número', 'RUC', 'Razón social', 'Condición', 'Gravada 10% (IVA incl.)', 'Gravada 5% (IVA incl.)', 'Exenta', 'Afectación', 'Cuenta', 'Concepto', 'Electrónico (S/N)', 'Comprobante asociado', 'Timbrado asociado'];
   const ALIAS_DOC = {
-    fecha: ['fecha', 'fechaemision'], tipoDoc: ['tipo', 'tipocomprobante', 'tipodoc'], timbrado: ['timbrado'],
-    numero: ['numero', 'nro', 'nrocomprobante', 'numerocomprobante', 'comprobante'],
-    ruc: ['ruc', 'rucci', 'documento'], razon: ['razonsocial', 'razon', 'nombre', 'proveedor', 'cliente'],
+    fecha: ['fecha', 'fechaemision', 'fechadeemision', 'fechaemisioncomprobante'], tipoDoc: ['tipo', 'tipocomprobante', 'tipodoc'], timbrado: ['timbrado'],
+    numero: ['numero', 'nro', 'nrocomprobante', 'numerocomprobante', 'numerodecomprobante', 'nrodecomprobante', 'comprobante'],
+    ruc: ['ruc', 'rucci', 'documento', 'rucemisor', 'rucproveedor', 'ruccliente', 'rucreceptor', 'numerodeidentificacion', 'nroidentificacion'], razon: ['razonsocial', 'razon', 'nombre', 'proveedor', 'cliente', 'nombreorazonsocial', 'razonsocialemisor', 'razonsocialreceptor'],
     condicion: ['condicion', 'condicionventa', 'condicioncompra'],
-    g10: ['gravada10', 'gravada10%', 'gravada10%ivaincl', 'gravadas10', 'monto10', '10%'],
-    g5: ['gravada5', 'gravada5%', 'gravada5%ivaincl', 'gravadas5', 'monto5', '5%'],
-    exenta: ['exenta', 'exentas', 'nogravada'], exportacion: ['exportacion', 'exportaciones'],
+    g10: ['gravada10', 'gravada10%', 'gravada10%ivaincl', 'gravadas10', 'monto10', '10%', 'montogravado10', 'montogravado10%', 'gravado10', 'gravado10%', 'totalgravado10'],
+    g5: ['gravada5', 'gravada5%', 'gravada5%ivaincl', 'gravadas5', 'monto5', '5%', 'montogravado5', 'montogravado5%', 'gravado5', 'gravado5%', 'totalgravado5'],
+    exenta: ['exenta', 'exentas', 'nogravada', 'montoexento', 'exento', 'montonogravadooexento', 'nogravadooexento', 'montoexentonogravado'], exportacion: ['exportacion', 'exportaciones'],
     afectacion: ['afectacion', 'imputacioniva'], electronico: ['electronico', 'electronica', 'electronicovirtual'],
-    asocNumero: ['comprobanteasociado', 'nroasociado', 'asociado'], asocTimbrado: ['timbradoasociado'], clase: ['clase', 'claseoperacion'], cuenta: ['cuenta', 'codcuenta', 'cuentacontable'], concepto: ['concepto', 'descripcion', 'detalle']
+    asocNumero: ['comprobanteasociado', 'nroasociado', 'asociado'], asocTimbrado: ['timbradoasociado'], clase: ['clase', 'claseoperacion'], cdc: ['cdc', 'codigodecontrol'], moneda: ['moneda'], tc: ['tipodecambio', 'tc', 'cotizacion'], cuenta: ['cuenta', 'codcuenta', 'cuentacontable'], concepto: ['concepto', 'descripcion', 'detalle']
   };
   X.tipoDoc = function (v) {
     const s = norm(v);
@@ -110,7 +111,9 @@
       exportacion: esCompra ? 0 : C.r0(get('exportacion')),
       afectacion: esCompra ? X.afectacion(get('afectacion')) : undefined,
       cuenta: String(get('cuenta') || '').trim(), concepto: String(get('concepto') || '').trim(),
-      electronico: siNo(get('electronico')) || undefined,
+      electronico: siNo(get('electronico')) || !!String(get('cdc') || '').trim() || undefined,
+      cdc: String(get('cdc') || '').replace(/\D/g, '') || undefined,
+      moneda: /usd|dolar|us\$/i.test(String(get('moneda'))) ? 'USD' : undefined, tc: C.num(get('tc')) || undefined,
       clase: /^agr/i.test(norm(get('clase'))) ? 'AGRO' : /^fle/i.test(norm(get('clase'))) ? 'FLETE' : undefined,
       asocNumero: get('asocNumero') ? C.formatearNumeroComprobante(get('asocNumero')) : undefined,
       asocTimbrado: get('asocTimbrado') ? String(get('asocTimbrado')).trim() : undefined

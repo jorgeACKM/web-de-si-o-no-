@@ -20,7 +20,8 @@
 
   S.nuevoDataCliente = () => ({
     cuentas: PlanDefault.PLAN_DEFAULT.map(c => Object.assign({}, c)),
-    config: {}, tiposCambio: {}, ventas: [], compras: [], asientos: [], terceros: {}, f120: {}, f500: {}
+    config: {}, tiposCambio: {}, ventas: [], compras: [], asientos: [], terceros: {}, f120: {}, f500: {},
+    pagos: [], retenciones: [], bienes: [], empleados: [], planillas: {}, recurrentes: [], dividendos: [], irp: {}, extractos: {}
   });
 
   S.crearCliente = function (cli) {

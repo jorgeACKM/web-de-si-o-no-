@@ -91,14 +91,18 @@
   C.esNC = doc => doc.tipoDoc === 'NOTA_CREDITO';
   C.signo = doc => C.esNC(doc) ? -1 : 1;
   // Montos de la factura: g10 y g5 son totales IVA incluido (como en el comprobante paraguayo).
+  // Comprobantes en moneda extranjera: los importes se cargan en US$ y se convierten con doc.tc.
+  C.esME = doc => doc.moneda === 'USD' && C.num(doc.tc) > 0;
   C.desglose = function (doc) {
-    const g10 = C.r0(doc.g10), g5 = C.r0(doc.g5), exenta = C.r0(doc.exenta), exportacion = C.r0(doc.exportacion);
+    const f = C.esME(doc) ? C.num(doc.tc) : 1;
+    const g10 = C.r0(C.num(doc.g10) * f), g5 = C.r0(C.num(doc.g5) * f), exenta = C.r0(C.num(doc.exenta) * f), exportacion = C.r0(C.num(doc.exportacion) * f);
     const iva10 = doc.iva10 !== undefined && doc.iva10 !== '' && doc.iva10 !== null ? C.r0(doc.iva10) : C.ivaIncluido(g10, 10);
     const iva5 = doc.iva5 !== undefined && doc.iva5 !== '' && doc.iva5 !== null ? C.r0(doc.iva5) : C.ivaIncluido(g5, 5);
     return {
       g10, g5, exenta, exportacion, iva10, iva5,
       base10: g10 - iva10, base5: g5 - iva5,
-      iva: iva10 + iva5, total: g10 + g5 + exenta + exportacion
+      iva: iva10 + iva5, total: g10 + g5 + exenta + exportacion,
+      totalME: f !== 1 ? C.r2(C.num(doc.g10) + C.num(doc.g5) + C.num(doc.exenta) + C.num(doc.exportacion)) : 0
     };
   };
   C.validarNumeroComprobante = n => /^\d{3}-\d{3}-\d{7}$/.test(String(n || ''));
@@ -176,29 +180,32 @@
   C.signoNatural = tipo => (tipo === 'A' || tipo === 'E') ? 1 : -1;
 
   /* ---------- Asientos ---------- */
-  function linea(cuenta, debe, haber) { return { cuenta, debe: C.r0(debe), haber: C.r0(haber) }; }
+  // me: importe en moneda extranjera (US$) con signo (+ debe, − haber), solo para cuentas en M/E.
+  function linea(cuenta, debe, haber, me) { const l = { cuenta, debe: C.r0(debe), haber: C.r0(haber) }; if (me) l.me = C.r2(me); return l; }
   function compactar(lineas) {
     // Une líneas de la misma cuenta y lado; elimina importes cero; invierte negativos.
-    const m = new Map();
+    const m = new Map(), me = new Map();
     lineas.forEach(l => {
       let d = l.debe || 0, h = l.haber || 0;
       if (d < 0) { h -= d; d = 0; }
       if (h < 0) { d -= h; h = 0; }
       const neto = d - h;
-      if (!neto) return;
+      if (!neto && !l.me) return;
       m.set(l.cuenta, (m.get(l.cuenta) || 0) + neto);
+      if (l.me) me.set(l.cuenta, (me.get(l.cuenta) || 0) + l.me);
     });
     const out = [];
-    m.forEach((neto, cuenta) => { if (neto) out.push(neto > 0 ? linea(cuenta, neto, 0) : linea(cuenta, 0, -neto)); });
+    m.forEach((neto, cuenta) => { if (neto || me.get(cuenta)) out.push(neto >= 0 ? linea(cuenta, neto, 0, me.get(cuenta)) : linea(cuenta, 0, -neto, me.get(cuenta))); });
     out.sort((a, b) => (b.debe - a.debe) || 0);
     return out;
   }
 
   C.asientoVenta = function (v, cfg) {
     const d = C.desglose(v), s = C.signo(v);
-    const contra = v.condicion === 'CREDITO' ? cfg.ctaClientes : cfg.ctaCaja;
+    const me = C.esME(v);
+    const contra = v.condicion === 'CREDITO' ? (me ? cfg.ctaClientesME : cfg.ctaClientes) : (me ? cfg.ctaCajaME : cfg.ctaCaja);
     const L = [
-      linea(contra, s * d.total, 0),
+      linea(contra, s * d.total, 0, me ? s * d.totalME : 0),
       linea(v.cuenta || cfg.ctaVentas10, 0, s * d.base10),
       linea(v.cuenta || cfg.ctaVentas5, 0, s * d.base5),
       linea(v.cuenta || cfg.ctaVentasEx, 0, s * d.exenta),
@@ -215,14 +222,15 @@
 
   C.asientoCompra = function (c, cfg) {
     const d = C.desglose(c), s = C.signo(c);
-    const contra = c.condicion === 'CREDITO' ? cfg.ctaProveedores : cfg.ctaCaja;
+    const me = C.esME(c);
+    const contra = c.condicion === 'CREDITO' ? (me ? cfg.ctaProveedoresME : cfg.ctaProveedores) : (me ? cfg.ctaCajaME : cfg.ctaCaja);
     const cta = c.cuenta || cfg.ctaCompras;
     const sinCredito = c.afectacion === 'EXENTA'; // IVA no computable: va al costo/gasto
     const L = [
       linea(cta, s * (d.base10 + d.base5 + d.exenta + d.exportacion + (sinCredito ? d.iva : 0)), 0),
       linea(cfg.ctaIvaCF10, sinCredito ? 0 : s * d.iva10, 0),
       linea(cfg.ctaIvaCF5, sinCredito ? 0 : s * d.iva5, 0),
-      linea(contra, 0, s * d.total)
+      linea(contra, 0, s * d.total, me ? -s * d.totalME : 0)
     ];
     return {
       id: 'C' + c.id, fecha: c.fecha, origen: 'compra', ref: c.id,
@@ -268,9 +276,18 @@
     (data.ventas || []).forEach(v => a.push(C.asientoVenta(v, cfg)));
     (data.compras || []).forEach(c => a.push(C.asientoCompra(c, cfg)));
     C.asientosProrrateo(data, cfg).forEach(x => a.push(x));
+    // Módulos adicionales (cobros, retenciones, depreciación, sueldos, recurrentes, IDU…)
+    C.generadores.forEach(g => g(data, cfg).forEach(x => a.push(x)));
     a.sort((x, y) => (x.fecha < y.fecha ? -1 : x.fecha > y.fecha ? 1 : 0));
+    // Ajustes que dependen de todo lo anterior (diferencia de cambio)
+    C.postGeneradores.forEach(g => g(data, cfg, a).forEach(x => a.push(x)));
+    if (C.postGeneradores.length) a.sort((x, y) => (x.fecha < y.fecha ? -1 : x.fecha > y.fecha ? 1 : 0));
     return a;
   };
+  C.generadores = [];
+  C.postGeneradores = [];
+  C._linea = linea;
+  C._compactar = compactar;
 
   C.validarAsiento = function (a, plan) {
     const errores = [];
@@ -521,7 +538,7 @@
     // RUBRO 5 – impuesto determinado y saldo financiero
     k.c55 = k.c50;
     k.c51 = saldoFin;
-    k.c52 = C.r0(ent.retenciones);
+    k.c52 = vacio(ent.retenciones) ? (C.retencionesDelMes ? C.retencionesDelMes(data, periodo, 'IVA') : 0) : C.r0(ent.retenciones);
     k.c169 = C.r0(ent.percepciones);
     k.c56 = C.r0(ent.multa);
     k.c53 = k.c51 + k.c52 + k.c169;
@@ -656,7 +673,7 @@
       if (e.length) errores.push(`${ref}: ${e.join(', ')}`);
       const f = [esCompra ? 2 : 1, id.tipo, id.numero, rg90Txt(doc.razon, 250), tipoComp, C.parseFecha(doc.fecha).split('-').reverse().join('/'),
         rg90Txt(doc.timbrado, 8), rg90Txt(doc.numero, 20), d.g10, d.g5, exento, d.total, doc.condicion === 'CREDITO' ? 2 : 1,
-        doc.monedaExtranjera ? 'S' : 'N', imp.iva, imp.ire, imp.irp];
+        doc.monedaExtranjera || C.esME(doc) ? 'S' : 'N', imp.iva, imp.ire, imp.irp];
       if (esCompra) f.push(doc.noImputa ? 'S' : 'N');
       f.push(esNC ? rg90Txt(doc.asocNumero, 20) : '', esNC ? rg90Txt(doc.asocTimbrado, 8) : '');
       lineas.push({ campos: f, ref, ok: !e.length, esCompra });

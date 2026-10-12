@@ -46,11 +46,11 @@
     ['1.1.1', 'DISPONIBILIDADES', 'AC_DISP'],
     ['1.1.1.01', 'Caja'],
     ['1.1.1.01.01', 'Caja moneda nacional'],
-    ['1.1.1.01.02', 'Caja moneda extranjera'],
+    ['1.1.1.01.02', 'Caja moneda extranjera', null, 'ME'],
     ['1.1.1.01.03', 'Fondo fijo'],
     ['1.1.1.02', 'Bancos'],
     ['1.1.1.02.01', 'Banco cuenta corriente M/N'],
-    ['1.1.1.02.02', 'Banco cuenta corriente M/E'],
+    ['1.1.1.02.02', 'Banco cuenta corriente M/E', null, 'ME'],
     ['1.1.1.02.03', 'Banco caja de ahorro'],
     ['1.1.2', 'INVERSIONES TEMPORARIAS', 'AC_INV'],
     ['1.1.2.01', 'Inversiones temporarias'],
@@ -60,6 +60,7 @@
     ['1.1.3.01.01', 'Clientes'],
     ['1.1.3.01.02', 'Documentos a cobrar'],
     ['1.1.3.01.03', '(-) Previsión para incobrables'],
+    ['1.1.3.01.04', 'Clientes en moneda extranjera', null, 'ME'],
     ['1.1.4', 'OTROS CRÉDITOS', 'AC_OCRED'],
     ['1.1.4.01', 'Créditos fiscales'],
     ['1.1.4.01.01', 'IVA crédito fiscal 10%'],
@@ -113,8 +114,9 @@
     ['2.1.1', 'ACREEDORES COMERCIALES', 'PC_COM'],
     ['2.1.1.01', 'Proveedores'],
     ['2.1.1.01.01', 'Proveedores locales'],
-    ['2.1.1.01.02', 'Proveedores del exterior'],
+    ['2.1.1.01.02', 'Proveedores del exterior', null, 'ME'],
     ['2.1.1.01.03', 'Documentos a pagar'],
+    ['2.1.1.01.04', 'Proveedores locales en moneda extranjera', null, 'ME'],
     ['2.1.2', 'DEUDAS FINANCIERAS', 'PC_FIN'],
     ['2.1.2.01', 'Préstamos bancarios'],
     ['2.1.2.01.01', 'Préstamos bancarios a corto plazo'],
@@ -127,6 +129,8 @@
     ['2.1.3.01.03', 'IVA a pagar'],
     ['2.1.3.01.04', 'IRE a pagar'],
     ['2.1.3.01.05', 'Retenciones a depositar'],
+    ['2.1.3.01.06', 'IDU retenido a depositar'],
+    ['2.1.3.01.07', 'IRP a pagar'],
     ['2.1.3.02', 'Deudas sociales'],
     ['2.1.3.02.01', 'Sueldos a pagar'],
     ['2.1.3.02.02', 'IPS a pagar'],
@@ -241,7 +245,7 @@
   ];
 
   const PLAN_DEFAULT = P.map(([codigo, nombre, rg49, flag]) => ({
-    codigo, nombre, rg49: rg49 || '', noDeducible: flag === 'ND', noGravado: flag === 'NG'
+    codigo, nombre, rg49: rg49 || '', noDeducible: flag === 'ND', noGravado: flag === 'NG', me: flag === 'ME'
   }));
 
   // Cuentas que usan los asientos automáticos (se pueden cambiar por cliente).
@@ -271,7 +275,25 @@
     limiteQuebrantoPct: 20,
     pctAnticipo: 25,
     cantAnticipos: 4,
-    limiteDonacionesPct: 1
+    limiteDonacionesPct: 1,
+    // Moneda extranjera y diferencia de cambio
+    ctaCajaME: '1.1.1.01.02', ctaClientesME: '1.1.3.01.04', ctaProveedoresME: '2.1.1.01.04',
+    ctaDifCambioPos: '4.2.1.01.02', ctaDifCambioNeg: '5.3.1.01.03',
+    // Retenciones e IDU
+    ctaRetIVARecibidas: '1.1.4.01.03', ctaRetADepositar: '2.1.3.01.05', ctaIDUADepositar: '2.1.3.01.06', ctaDividendosAPagar: '2.1.3.03.03',
+    pctIDUResidente: 8, pctIDUNoResidente: 15,
+    // Sueldos e IPS
+    ctaSueldos: '5.2.1.01.01', ctaAportePatronal: '5.2.1.01.02', ctaAguinaldoGasto: '5.2.1.01.03',
+    ctaSueldosAPagar: '2.1.3.02.01', ctaIPSAPagar: '2.1.3.02.02', ctaAguinaldoAPagar: '2.1.3.02.03', ctaDescuentosPersonal: '1.1.4.02.02',
+    pctIPSObrero: 9, pctIPSPatronal: 16.5,
+    // Depreciaciones (grupo usado también en el flujo de efectivo)
+    ctaDepGasto: '5.2.1.03.01', grupoDepreciaciones: '5.2.1.03',
+    // IRP: tramos "hasta:tasa;hasta:tasa;:tasa" (verificar vigencia)
+    irpTramos: '50000000:8;150000000:9;:10',
+    // Cuentas corrientes y vencimientos
+    plazoDias: 30, mesesAnticiposIRE: '6,8,10,12', mesesVtoIRE: 4,
+    // Bloqueo de períodos declarados (fecha AAAA-MM-DD; vacío = sin bloqueo)
+    cerradoHasta: ''
   };
 
   root.PlanDefault = { RUBROS_RG49, PLAN_DEFAULT, CONFIG_DEFAULT };
