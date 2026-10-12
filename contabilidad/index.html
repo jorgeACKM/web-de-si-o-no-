@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ContaPY – Contabilidad de clientes</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">ContaPY <small>contabilidad de clientes</small></div>
+    <label class="cliente-sel">Cliente:
+      <select id="selCliente"></select>
+    </label>
+  </header>
+  <nav id="tabs" class="tabs"></nav>
+  <main id="main"></main>
+  <div id="toast" class="toast" hidden></div>
+
+  <datalist id="dl-cuentas"></datalist>
+
+  <script src="vendor/xlsx.full.min.js"></script>
+  <script src="js/plan-default.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/excel.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
