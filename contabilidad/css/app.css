@@ -99,3 +99,11 @@ table.f120 td.cas { color: var(--muted); font-size: 11px; text-align: right; wid
 .badge.usd { background: #2a5d9f; }
 button.danger { color: var(--danger); }
 section.card details summary { cursor: pointer; }
+.login-fondo { position: fixed; inset: 0; background: rgba(20, 40, 35, .65); display: flex; align-items: center; justify-content: center; z-index: 20; }
+.login { width: min(360px, 92vw); display: flex; flex-direction: column; gap: 10px; }
+.login label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.topbar .usuario { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.topbar .usuario button { padding: 3px 10px; font-size: 12px; }
+.sync { font-size: 11px; padding: 2px 6px; border-radius: 3px; background: rgba(255, 255, 255, .15); }
+.sync.err { background: #b23b3b; }
+.sync.pend { background: #8a5a00; }

@@ -1,0 +1,11 @@
+{
+  "name": "contapy",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Sistema contable para clientes (Paraguay): IVA, IRE, IRP, IDU, RG 49, RG 90",
+  "scripts": {
+    "start": "node server/server.js",
+    "test": "node tests/core.test.js && node -r ./js/core-ext.js tests/core.test.js && node tests/ext.test.js"
+  },
+  "engines": { "node": ">=18" }
+}
