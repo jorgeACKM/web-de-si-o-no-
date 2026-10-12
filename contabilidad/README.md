@@ -13,7 +13,8 @@ Los datos quedan guardados en el navegador; use **Clientes → Descargar respald
 | **Asientos y mayor** | Cada comprobante genera su asiento automáticamente. Asientos manuales (apertura, sueldos, depreciaciones…), importación de asientos desde Excel, libro diario y libro mayor a Excel. |
 | **Tipos de cambio** | Cotización Gs/US$ de cierre por mes (carga manual o Excel). |
 | **Balances** | **Balance comparativo nivel 4 (o 1–6) en guaraníes y dólares** entre dos fechas de corte, con variación absoluta y %. **Balance General y Estado de Resultados comparativos formato RG 49/2014** (Gs. y opcionalmente US$) con hoja de composición por rubro para notas. |
-| **Form. 120 (IVA)** | Preliquidación mensual: ventas 10%/5%/exentas/exportaciones, notas de crédito, compras locales e importaciones, crédito fiscal por afectación (gravadas / exentas / mixta), **coeficiente de prorrateo**, saldo a favor encadenado mes a mes, retenciones y percepciones. Exporta el formulario con el detalle del mes y un resumen anual. |
+| **Form. 120 V4 (IVA)** | Formato oficial (V.4 Enero/2020) con **todas las casillas** de los Rubros 1 a 6: ventas 10%/5% (agrícolas y otros), exoneradas, exportaciones (agrícolas, flete, otros), NC recibidas en Rubro 1 h–k, acumulado de 6 meses del Rubro 2, crédito directo/indistinto y **prorrateo** (cas. 164/165), NC emitidas en Rubro 3 e, saldo técnico (47→46) y saldo financiero (54→51) encadenados mes a mes, retenciones (52), percepciones (169), multa (56), Rubro 6 con IVA costo (64). Exporta el formulario con casillas y un resumen anual por casilla. |
+| **RG 90 Marangatu** | Genera el archivo de **registro de comprobantes** (obligación 955 mensual o 956 anual): CSV por comas, UTF‑8, sin encabezado, 19 campos en ventas y 20 en compras, comprimido en ZIP con el nombre `RUC_REG_MMAAAA_V0001`. Excluye comprobantes electrónicos/virtuales, informa NC con comprobante asociado, valida timbrado, número, DV del RUC y totales antes de generar. |
 | **Form. 500 (IRE)** | Situación patrimonial, estado de resultados, determinación de la renta neta (gastos no deducibles, ingresos no gravados, diferencia de depreciación, ajustes, límite de donaciones), compensación de quebrantos con límite, impuesto (10%), anticipos y retenciones, saldo, quebranto a trasladar, anticipos del ejercicio siguiente, **conciliación ventas F120 vs. contabilidad**, controles de consistencia e indicadores financieros (liquidez, prueba ácida, endeudamiento, márgenes, ROE, ROA, presión fiscal, tasa efectiva). |
 
 ## Cómo se arma la contabilidad
@@ -26,7 +27,9 @@ Los datos quedan guardados en el navegador; use **Clientes → Descargar respald
 
 ## Importante
 
-- Los formularios 120 y 500 son **preliquidaciones** con los conceptos de cada rubro. Antes de transcribir, verifique el número de casilla en el formulario vigente del sistema Marangatu (DNIT), ya que puede cambiar entre versiones.
+- El Form. 120 sigue la versión 4 del formulario (casillas tomadas de una DJ presentada). El Form. 500 es una preliquidación por conceptos: verifique las casillas en Marangatu.
+- RG 90: códigos de comprobante usados 109 factura, 110 nota de crédito, 111 nota de débito, 101 autofactura, 103 boleta, 107 despacho; identificación 11 RUC, 12 cédula, 13 pasaporte, 15 sin nombre (escriba `X` en el RUC). Revise la especificación técnica vigente de la DNIT si Marangatu rechaza un código.
+- En la carga, marque **Electrónico/virtual** los comprobantes SIFEN (no van al RG 90). Para clasificar operaciones agrícolas o de flete internacional use la columna *Clase* del Excel o la opción del Form. 120.
 - Los parámetros del IRE (tasa 10%, límite de quebrantos 20%, donaciones 1%, anticipos 4 × 25%) son editables en *Clientes*; confirme la normativa vigente para cada ejercicio.
 - La conversión a dólares usa el tipo de cambio de cierre de cada fecha de corte.
 - Los comprobantes se cargan en guaraníes.

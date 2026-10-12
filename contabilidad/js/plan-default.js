@@ -263,6 +263,9 @@
     ctaAnticiposIRE: '1.1.4.01.04',
     ctaRetencionesIRE: '1.1.4.01.05',
     ctaDonaciones: '5.4.1.01.04',
+    // RG 90: imputación por defecto de los comprobantes registrados
+    agro5: false, // operaciones al 5% del cliente son productos agrícolas (Form. 120 casillas 150/156, 152)
+    rg90ImputaIVA: 'S', rg90ImputaIRE: 'S', rg90ImputaIRP: 'N',
     // Parámetros IRE (Ley 6380/2019) — verificar vigencia cada ejercicio.
     tasaIRE: 10,
     limiteQuebrantoPct: 20,

@@ -89,3 +89,8 @@ details summary { cursor: pointer; color: var(--primary); }
   .topbar, .tabs, .acciones, .form, .toast, tr.entrada, tr.entrada-info { display: none !important; }
   .card { border: 0; }
 }
+label.chk.inline { display: inline-flex; color: var(--text); font-size: 12px; margin-right: 8px; }
+tr.entrada-info input { padding: 2px 4px; font-size: 12px; }
+.badge { display: inline-block; background: var(--primary); color: #fff; border-radius: 3px; padding: 0 4px; font-size: 11px; }
+table.f120.v4 { margin-bottom: 14px; }
+table.f120 td.cas { color: var(--muted); font-size: 11px; text-align: right; width: 34px; padding-right: 2px; }

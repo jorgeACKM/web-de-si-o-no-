@@ -80,20 +80,47 @@ t('Asientos automáticos balancean', () => {
   });
 });
 
-t('Formulario 120 con prorrateo y saldo encadenado', () => {
+t('Formulario 120 V4: casillas, prorrateo y saldos encadenados', () => {
   const d = datos();
-  const f = C.f120(d, '2026-01');
-  assert.strictEqual(f.debito, 1000000 - 100000);
-  // gravadas netas 9.000.000, exentas 1.000.000 => coef 90%
-  assert.ok(Math.abs(f.coeficiente - 0.9) < 1e-9);
-  assert.strictEqual(f.cfDirecto, 500000);
-  assert.strictEqual(f.cfMixtoComputable, 90000);
-  assert.strictEqual(f.impuestoAIngresar, 900000 - 590000 - 50000);
-  const feb = C.f120(d, '2026-02');
-  assert.strictEqual(feb.saldoAnterior, 0);
-  assert.strictEqual(feb.saldoFavorSiguiente, 2000000);
-  const mar = C.f120(d, '2026-03');
-  assert.strictEqual(mar.saldoAnterior, 2000000);
+  const f = C.f120(d, '2026-01'), k = f.k;
+  assert.strictEqual(k.c10, 10000000); assert.strictEqual(k.c22, 1000000); assert.strictEqual(k.c12, 1000000);
+  assert.strictEqual(k.c44, 1000000);                 // débito: facturas emitidas
+  assert.strictEqual(k.c37, 1000000); assert.strictEqual(k.c42, 100000); // NC emitida → Rubro 3 inc. e
+  assert.strictEqual(k.c38, 500000); assert.strictEqual(k.c39, 100000);
+  assert.strictEqual(k.c160, 10000000); assert.strictEqual(k.c27, 11000000);
+  assert.strictEqual(k.c164, Math.round(100000 * 10 / 11));
+  assert.strictEqual(k.c43, 500000 + 90909 + 100000);
+  assert.strictEqual(k.c48, 1000000 - 690909); assert.strictEqual(k.c50, k.c48);
+  assert.strictEqual(k.c58, k.c50 - 50000);
+  assert.strictEqual(k.c64, 100000 - 90909);           // IVA no computable del prorrateo
+  const feb = C.f120(d, '2026-02').k;
+  assert.strictEqual(feb.c46, 0); assert.strictEqual(feb.c47, 2000000);
+  assert.strictEqual(C.f120(d, '2026-03').k.c46, 2000000);
+});
+
+t('Formulario 120: NC recibida va al débito (Rubro 1 inc. h)', () => {
+  const d = { cliente: {}, ventas: [], compras: [{ id: 1, fecha: '2026-05-02', tipoDoc: 'NOTA_CREDITO', g10: 220000 }] };
+  const k = C.f120(d, '2026-05').k;
+  assert.strictEqual(k.c15, 200000); assert.strictEqual(k.c23, 20000); assert.strictEqual(k.c44, 20000);
+});
+
+t('RG 90: líneas, identificación, exclusión de electrónicos y nombre de archivo', () => {
+  const d = { cliente: {}, ventas: [
+    { id: 1, fecha: '2026-01-10', tipoDoc: 'FACTURA', timbrado: '12345678', numero: '001-001-0000001', ruc: '80000519-8', razon: 'Cliente, S.A.', condicion: 'CREDITO', g10: 1100000, exenta: 5000 },
+    { id: 2, fecha: '2026-01-11', tipoDoc: 'NOTA_CREDITO', timbrado: '12345678', numero: '001-001-0000002', ruc: 'X', g10: 110000, asocNumero: '001-001-0000001', asocTimbrado: '12345678' },
+    { id: 3, fecha: '2026-01-12', tipoDoc: 'FACTURA', electronico: true, g10: 1000 }],
+    compras: [{ id: 4, fecha: '2026-01-05', tipoDoc: 'FACTURA', timbrado: '87654321', numero: '001-002-0000456', ruc: '1234567', razon: 'Juan', g5: 210000 }] };
+  const r = C.rg90(d, '2026-01');
+  assert.deepStrictEqual(r.errores, []);
+  assert.strictEqual(r.excluidos.length, 1);
+  const L = r.csv.trim().split('\r\n');
+  assert.strictEqual(L[0], '1,11,80000519,Cliente S.A.,109,10/01/2026,12345678,001-001-0000001,1100000,0,5000,1105000,2,N,S,S,N,,');
+  assert.strictEqual(L[1].split(',').length, 19);
+  assert.ok(L[1].endsWith(',001-001-0000001,12345678'));
+  assert.strictEqual(L[2].split(',').length, 20);
+  assert.ok(L[2].startsWith('2,12,1234567,Juan,109,'));
+  assert.strictEqual(C.rg90NombreArchivo('80000519-8', '2026-01', 1), '80000519_REG_012026_V0001');
+  assert.strictEqual(C.rg90NombreArchivo('80000519-8', '2026-01', 3, true), '80000519_REG_2026_V0003');
 });
 
 t('Balance cuadra (nivel 4 y RG49)', () => {

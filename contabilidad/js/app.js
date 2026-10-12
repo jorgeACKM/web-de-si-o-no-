@@ -48,7 +48,7 @@
 
   /* ---------- navegación ---------- */
   const TABS = [['clientes', 'Clientes'], ['plan', 'Plan de cuentas'], ['ventas', 'Ventas'], ['compras', 'Compras'], ['asientos', 'Asientos y mayor'],
-    ['tc', 'Tipos de cambio'], ['balances', 'Balances'], ['f120', 'Form. 120 – IVA'], ['f500', 'Form. 500 – IRE']];
+    ['tc', 'Tipos de cambio'], ['balances', 'Balances'], ['f120', 'Form. 120 – IVA'], ['f500', 'Form. 500 – IRE'], ['rg90', 'RG 90 Marangatu']];
 
   let renderizando = false;
   function render() {
@@ -248,7 +248,8 @@
       const base = doc || {
         fecha: (u.fecha && u.fecha.slice(0, 7) === st.periodo) ? u.fecha : (st.periodo === hoy().slice(0, 7) ? hoy() : st.periodo + '-01'),
         tipoDoc: 'FACTURA', condicion: 'CONTADO', afectacion: 'GRAVADA',
-        timbrado: esCompra ? '' : (u.timbrado || ''), numero: esCompra ? '' : C.siguienteNumero(u.numero || '')
+        timbrado: esCompra ? '' : (u.timbrado || ''), numero: esCompra ? '' : C.siguienteNumero(u.numero || ''),
+        electronico: esCompra ? false : !!u.electronico
       };
       return `<tr class="entrada">
         <td><input type="date" id="q-fecha" value="${esc(base.fecha)}"></td>
@@ -267,7 +268,11 @@
         <td><input id="q-cta" list="dl-cuentas" value="${esc(base.cuenta)}" size="12" placeholder="${esCompra ? esc(cfg().ctaCompras) : '(por tasa)'}"></td>
         <td><button id="q-ok" class="primary">${doc ? 'Actualizar' : 'Agregar ⏎'}</button>${doc ? ' <button id="q-cancel">Cancelar</button>' : ''}</td>
       </tr>
-      <tr class="entrada-info"><td colspan="13" id="q-info"></td></tr>`;
+      <tr class="entrada-info"><td colspan="13">
+        <label class="chk inline"><input type="checkbox" id="q-elec" ${base.electronico ? 'checked' : ''}> Electrónico/virtual (SIFEN – no va en RG 90)</label>
+        <span id="q-asoc" ${base.tipoDoc === 'NOTA_CREDITO' ? '' : 'hidden'}> · Comprobante asociado <input id="q-asocnum" value="${esc(base.asocNumero)}" size="15" placeholder="001-001-0000001">
+          Timbrado asoc. <input id="q-asoctim" value="${esc(base.asocTimbrado)}" size="8" maxlength="8"></span>
+        <br><span id="q-info"></span></td></tr>`;
     }
 
     return {
@@ -279,7 +284,7 @@
           tot.g10 += s * d.g10; tot.iva10 += s * d.iva10; tot.g5 += s * d.g5; tot.iva5 += s * d.iva5; tot.ex += s * d.exenta; tot.exp += s * d.exportacion; tot.total += s * d.total;
           const malaCta = x.cuenta && !ctaValida(x.cuenta);
           return `<tr class="${st.editId === x.id ? 'sel' : ''} ${C.esNC(x) ? 'nc' : ''}" data-id="${x.id}">
-            <td>${fd(x.fecha)}</td><td>${TIPOS_DOC[x.tipoDoc] || x.tipoDoc}</td><td>${esc(x.timbrado)}</td><td>${esc(x.numero)}</td><td>${esc(x.ruc)}</td><td>${esc(x.razon)}</td>
+            <td>${fd(x.fecha)}</td><td>${TIPOS_DOC[x.tipoDoc] || x.tipoDoc}${x.electronico ? ' <span class="badge" title="Electrónico/virtual">e</span>' : ''}</td><td>${esc(x.timbrado)}</td><td>${esc(x.numero)}</td><td>${esc(x.ruc)}</td><td>${esc(x.razon)}</td>
             <td>${x.condicion === 'CREDITO' ? 'Crédito' : 'Contado'}</td><td class="n">${fmtZ(d.g10)}</td><td class="n">${fmtZ(d.g5)}</td><td class="n">${fmtZ(d.exenta)}</td>
             <td>${esCompra ? ({ GRAVADA: 'Gravadas', MIXTA: 'Mixta', EXENTA: 'Exentas' }[x.afectacion] || 'Gravadas') : `<span class="n">${fmtZ(d.exportacion)}</span>`}</td>
             <td class="${malaCta ? 'err' : ''}" title="${esc(nombreCta(x.cuenta))}">${esc(x.cuenta)}</td>
@@ -338,10 +343,12 @@
               if (!v('#q-timb') && t.timbrado) $('#q-timb').value = t.timbrado;
               if (!v('#q-cta') && t.cuenta) $('#q-cta').value = t.cuenta;
               if (t.afectacion) $('#q-afec').value = t.afectacion;
+              if (t.electronico !== undefined) $('#q-elec').checked = !!t.electronico;
             }
           }
           info();
         });
+        $('#q-tipo').addEventListener('change', () => { $('#q-asoc').hidden = v('#q-tipo') !== 'NOTA_CREDITO'; });
         $('#q-num').addEventListener('change', () => { $('#q-num').value = C.formatearNumeroComprobante(v('#q-num')); info(); });
         ['#q-g10', '#q-g5', '#q-ex', '#q-exp'].forEach(id => $(id) && $(id).addEventListener('blur', () => { const n = C.num(v(id)); $(id).value = n ? fmt(n) : ''; }));
 
@@ -350,8 +357,10 @@
             fecha: v('#q-fecha'), tipoDoc: v('#q-tipo'), timbrado: v('#q-timb').trim(), numero: C.formatearNumeroComprobante(v('#q-num')),
             ruc: C.normalizarRuc(v('#q-ruc')), razon: v('#q-razon').trim(), condicion: v('#q-cond'),
             g10: C.r0(C.num(v('#q-g10'))), g5: C.r0(C.num(v('#q-g5'))), exenta: C.r0(C.num(v('#q-ex'))),
-            exportacion: esCompra ? 0 : C.r0(C.num(v('#q-exp'))), cuenta: v('#q-cta').trim()
+            exportacion: esCompra ? 0 : C.r0(C.num(v('#q-exp'))), cuenta: v('#q-cta').trim(),
+            electronico: $('#q-elec').checked
           };
+          if (doc.tipoDoc === 'NOTA_CREDITO') { doc.asocNumero = C.formatearNumeroComprobante(v('#q-asocnum')); doc.asocTimbrado = v('#q-asoctim').trim(); }
           if (esCompra) doc.afectacion = v('#q-afec');
           if (!doc.fecha) return toast('Ingrese la fecha', 'error');
           if (!(doc.g10 || doc.g5 || doc.exenta || doc.exportacion)) return toast('Ingrese al menos un importe', 'error');
@@ -363,7 +372,7 @@
           if (doc.ruc) {
             const t = d.terceros[doc.ruc] || (d.terceros[doc.ruc] = {});
             if (doc.razon) t.razon = doc.razon;
-            if (esCompra) { t.timbrado = doc.timbrado; if (doc.cuenta) t.cuenta = doc.cuenta; t.afectacion = doc.afectacion; }
+            if (esCompra) { t.timbrado = doc.timbrado; if (doc.cuenta) t.cuenta = doc.cuenta; t.afectacion = doc.afectacion; t.electronico = doc.electronico; }
           }
           S.save();
           const fueEdicion = !!st.editId; st.editId = null;
@@ -372,7 +381,7 @@
           render();
           if (!fueEdicion) {
             $('#q-fecha').value = doc.fecha; $('#q-tipo').value = doc.tipoDoc; $('#q-cond').value = doc.condicion;
-            if (!esCompra) { $('#q-timb').value = doc.timbrado; $('#q-num').value = C.siguienteNumero(doc.numero); }
+            if (!esCompra) { $('#q-timb').value = doc.timbrado; $('#q-num').value = C.siguienteNumero(doc.numero); $('#q-elec').checked = doc.electronico; }
           }
           $('#q-ruc').focus();
         }
@@ -723,44 +732,61 @@
       const d = datos();
       const ent = d.f120[st.periodo] || {};
       const f = C.f120(d, st.periodo);
-      const inp = (k, n, ph) => `<label>${n}<input class="n" data-f="${k}" value="${ent[k] !== undefined && ent[k] !== '' ? fmt2(ent[k]).replace(/,00$/, '') : ''}" placeholder="${esc(ph || '0')}"></label>`;
-      const rubros = { 1: 'RUBRO 1 – Operaciones del mes y débito fiscal', 2: 'RUBRO 2 – Compras y crédito fiscal', 3: 'RUBRO 3 – Liquidación del impuesto' };
-      let ult = 0;
-      return `<section class="card"><h2>Formulario 120 – IVA General (mensual)</h2>
+      const val = k => ent[k] !== undefined && ent[k] !== '' ? fmt(ent[k]) : '';
+      const inp = (k, n, ph) => `<label>${n}<input class="n" data-f="${k}" value="${val(k)}" placeholder="${esc(ph === undefined ? '0' : ph)}"></label>`;
+      const celda = x => x ? `<td class="cas">${x[0]}</td><td class="n">${fmt(x[1])}</td>` : '<td class="cas"></td><td></td>';
+      return `<section class="card"><h2>Formulario 120 V4 – IVA General (mensual)</h2>
         <div class="acciones"><label>Período <input type="month" id="per" value="${st.periodo}"></label>
-          <button id="f-exp" class="primary">Exportar a Excel</button> <button id="f-exp-anio">Resumen anual ${st.periodo.slice(0, 4)} (Excel)</button></div>
-        <h3>Datos complementarios del período</h3>
-        <div class="form cols3">
-          ${inp('saldoAnterior', 'Saldo a favor del período anterior', `automático: ${fmt(f.saldoAnterior)}`)}
-          ${inp('retenciones', 'Retenciones de IVA recibidas')}
-          ${inp('percepciones', 'Percepciones de IVA')}
-          ${inp('otrosCreditos', 'Otros créditos / pagos previos')}
-          ${inp('coeficiente', 'Coeficiente de prorrateo % (vacío = automático)', `${(f.coeficiente * 100).toFixed(2)}`)}
+          <button id="f-exp" class="primary">Exportar a Excel</button> <button id="f-exp-anio">Resumen anual ${st.periodo.slice(0, 4)} (Excel)</button>
+          <label class="chk"><input type="checkbox" id="f-agro" ${cfg().agro5 ? 'checked' : ''}> Las operaciones al 5% / exportaciones del cliente son productos agrícolas</label></div>
+        <h3>Datos que no surgen de los libros</h3>
+        <div class="form cols4">
+          ${inp('saldoAnterior', 'Cas. 46 – Saldo técnico período anterior', `automático: ${fmt(f.k.c46)}`)}
+          ${inp('saldoAnteriorFin', 'Cas. 51 – Saldo financiero período anterior', `automático: ${fmt(f.k.c51)}`)}
+          ${inp('retenciones', 'Cas. 52 – Retenciones computables')}
+          ${inp('percepciones', 'Cas. 169 – Percepciones computables')}
+          ${inp('remision', 'Cas. 167 – Saldo a remitir al fisco (Art. 91)')}
+          ${inp('anexoExportador', 'Cas. 49 – IVA crédito Anexo Exportador (cas. 148)')}
+          ${inp('deduccionDiscapacidad', 'Cas. 168 – Deducción Ley 4.962/2013')}
+          ${inp('multa', 'Cas. 56 – Multa por presentación tardía')}
+          ${inp('coeficiente', 'Coeficiente de prorrateo % (vacío = automático)', (f.coeficiente * 100).toFixed(4))}
         </div>
-        <p class="muted">El saldo a favor se arrastra automáticamente del mes anterior. Los importes salen de los libros de compras y ventas del período.
-        <b>Verifique el número de casilla de cada concepto en el formulario vigente del sistema Marangatu antes de transcribir.</b></p>
-        <table class="grid f120"><thead><tr><th>Concepto</th><th>Monto imponible</th><th>Impuesto</th></tr></thead><tbody>
-        ${f.lineas.map(l => { const h = l.rubro !== ult ? `<tr class="titulo"><td colspan="3">${rubros[l.rubro]}</td></tr>` : ''; ult = l.rubro;
-          return h + `<tr class="${l.total ? 'total' : ''} ${l.info ? 'info' : ''}"><td>${esc(l.concepto)}</td><td class="n">${l.base === null ? '' : fmt(l.base)}</td><td class="n">${l.impuesto === null ? '' : fmt(l.impuesto)}</td></tr>`; }).join('')}
-        </tbody></table>
-        <div class="resultado ${f.impuestoAIngresar ? 'pagar' : 'favor'}">${f.impuestoAIngresar ? `Impuesto a ingresar: <b>Gs. ${fmt(f.impuestoAIngresar)}</b>` : `Saldo a favor del contribuyente: <b>Gs. ${fmt(f.saldoFavorSiguiente)}</b>`}</div>
+        <details><summary>Rubro 2: cargar acumulados de 6 meses a mano (si los meses anteriores no están en el sistema)</summary>
+          <div class="form cols4">${[[160, 'Cas. 160'], [161, 'Cas. 161'], [26, 'Cas. 26'], [162, 'Cas. 162'], [163, 'Cas. 163'], [29, 'Cas. 29']].map(([n, t]) => inp('a' + n, t, `automático: ${fmt(f.k['c' + n])}`)).join('')}</div>
+        </details>
+        <p class="muted">Los saldos a favor (técnico cas. 47 → 46 y financiero cas. 54 → 51) se trasladan solos al mes siguiente. Las NC recibidas de proveedores van al Rubro 1 (h–k) y las NC emitidas al Rubro 3 inc. e. El prorrateo usa el acumulado de 6 meses del Rubro 2.</p>
+        ${f.rubros.map(r => `<table class="grid f120 v4"><thead><tr class="titulo"><td colspan="${2 + r.cols.length * 2}">${esc(r.titulo)}</td></tr>
+          <tr><th>Inc.</th><th>Concepto</th>${r.cols.map(c => `<th colspan="2">${esc(c)}</th>`).join('')}</tr></thead><tbody>
+          ${r.filas.map(([inc, txt, cel, tot]) => `<tr class="${tot ? 'total' : ''}"><td class="c">${inc}</td><td>${esc(txt)}</td>${cel.map(celda).join('')}</tr>`).join('')}</tbody></table>`).join('')}
+        <div class="resultado ${f.k.c58 ? 'pagar' : 'favor'}">${f.k.c58 ? `Saldo a pagar (cas. 58): <b>Gs. ${fmt(f.k.c58)}</b>` : `Sin impuesto a pagar · Saldo técnico (cas. 47): <b>Gs. ${fmt(f.k.c47)}</b> · Saldo financiero (cas. 54): <b>Gs. ${fmt(f.k.c54)}</b>`}</div>
       </section>`;
     },
     bind() {
       const d = datos();
       $('#per').onchange = e => { if (e.target.value) { st.periodo = e.target.value; render(); } };
+      $('#f-agro').onchange = e => { d.config = Object.assign({}, d.config, { agro5: e.target.checked }); S.save(); render(); };
       $$('[data-f]').forEach(i => i.onchange = () => {
         const e = d.f120[st.periodo] || (d.f120[st.periodo] = {});
         if (i.value.trim() === '') delete e[i.dataset.f]; else e[i.dataset.f] = C.num(i.value);
         S.save(); render();
       });
-      const hojaF120 = f => [['Rubro', 'Concepto', 'Monto imponible', 'Impuesto']].concat(f.lineas.map(l => [l.rubro, l.concepto, l.base, l.impuesto]));
+      const hojaF120 = f => {
+        const max = 3, aoa = [['Inc.', 'Concepto'].concat(...new Array(max).fill(0).map((x, i) => [`Casilla ${['I', 'II', 'III'][i]}`, `Columna ${['I', 'II', 'III'][i]}`]))];
+        f.rubros.forEach(r => {
+          aoa.push([], [r.titulo], ['', ''].concat(...r.cols.map(c => ['Cas.', c])));
+          r.filas.forEach(([inc, txt, cel]) => aoa.push([inc, txt].concat(...cel.map(x => x ? [x[0], x[1]] : ['', '']))));
+        });
+        return aoa;
+      };
       $('#f-exp').onclick = () => {
         const f = C.f120(d, st.periodo);
-        const aoa = X.encabezado(cliente(), `FORMULARIO 120 – IVA GENERAL – PERÍODO ${st.periodo.slice(5)}/${st.periodo.slice(0, 4)}`, 'Preliquidación (verificar casillas en Marangatu)').concat(hojaF120(f));
+        const aoa = X.encabezado(cliente(), `FORMULARIO 120 V4 – IVA – PERÍODO ${st.periodo.slice(5)}/${st.periodo.slice(0, 4)}`, 'Preliquidación con casillas del formulario oficial').concat(hojaF120(f));
+        const ws = X.hoja(aoa, { anchos: [5, 90, 7, 16, 7, 16, 7, 16] });
+        // las columnas de casilla se muestran sin separador de miles
+        Object.keys(ws).forEach(ref => { if (ref[0] !== '!' && 'CEG'.includes(ref.replace(/\d+/g, '')) && ws[ref].t === 'n') ws[ref].z = '0'; });
         const det = (lista, nombre) => [['Fecha', 'Tipo', 'Número', 'RUC', 'Razón social', 'Base 10%', 'IVA 10%', 'Base 5%', 'IVA 5%', 'Exenta', nombre]].concat(
-          lista.filter(x => x.fecha.slice(0, 7) === st.periodo).map(x => { const q = C.desglose(x), s = C.signo(x); return [fd(x.fecha), TIPOS_DOC[x.tipoDoc], x.numero, x.ruc, x.razon, s * q.base10, s * q.iva10, s * q.base5, s * q.iva5, s * q.exenta, nombre === 'Afectación' ? x.afectacion : s * q.exportacion]; }));
-        X.descargar([{ nombre: 'Form 120', ws: X.hoja(aoa, { anchos: [7, 75, 18, 18] }) },
+          lista.filter(x => x.fecha.slice(0, 7) === st.periodo).map(x => { const q = C.desglose(x), sg = C.signo(x); return [fd(x.fecha), TIPOS_DOC[x.tipoDoc], x.numero, x.ruc, x.razon, sg * q.base10, sg * q.iva10, sg * q.base5, sg * q.iva5, sg * q.exenta, nombre === 'Afectación' ? x.afectacion : sg * q.exportacion]; }));
+        X.descargar([{ nombre: 'Form 120', ws },
           { nombre: 'Ventas del mes', ws: X.hoja(det(d.ventas, 'Exportación'), { anchos: [11, 14, 17, 13, 30, 14, 12, 14, 12, 12, 12] }) },
           { nombre: 'Compras del mes', ws: X.hoja(det(d.compras, 'Afectación'), { anchos: [11, 14, 17, 13, 30, 14, 12, 14, 12, 12, 12] }) }],
           `form120_${st.periodo}_${slug(cliente().razon)}.xlsx`);
@@ -768,16 +794,15 @@
       $('#f-exp-anio').onclick = () => {
         const y = st.periodo.slice(0, 4), memo = {};
         const fs = MESES.map((m, i) => C.f120(d, `${y}-${C.pad(i + 1)}`, null, memo));
-        const head = ['Concepto'].concat(MESES.map(m => m.slice(0, 3)), ['Total']);
-        const fila = (n, fn, sumar) => { const v = fs.map(fn); return [n].concat(v, sumar === false ? [''] : [v.reduce((a, b) => a + b, 0)]); };
-        const aoa = X.encabezado(cliente(), `RESUMEN ANUAL IVA – ${y}`).concat([head,
-          fila('Ventas gravadas 10% (base neta)', f => f.V.fac.base10 - f.V.nc.base10), fila('Ventas gravadas 5% (base neta)', f => f.V.fac.base5 - f.V.nc.base5),
-          fila('Exportaciones', f => f.exportNeta), fila('Ventas exentas', f => f.exentaNeta), fila('Total ventas', f => f.ventasTotales),
-          fila('Débito fiscal', f => f.debito), fila('Crédito fiscal total', f => f.cfTotal), fila('Crédito fiscal computable', f => f.cfComputable),
-          fila('Coeficiente de prorrateo', f => f.coeficiente, false),
-          fila('Saldo a favor período anterior', f => f.saldoAnterior, false), fila('Retenciones', f => f.retenciones), fila('Percepciones', f => f.percepciones),
-          fila('Impuesto a ingresar', f => f.impuestoAIngresar), fila('Saldo a favor siguiente', f => f.saldoFavorSiguiente, false)]);
-        const ws = X.hoja(aoa, { anchos: [34].concat(new Array(13).fill(14)) });
+        const head = ['Casilla', 'Concepto'].concat(MESES.map(m => m.slice(0, 3)), ['Total']);
+        const CAS = [[10, 'Ventas gravadas 10%'], [151, 'Ventas gravadas 5%'], [150, 'Ventas 5% agrícolas'], [12, 'Exoneradas / no alcanzadas'], [14, 'Exportaciones'], [18, 'Total Rubro 1 col. I'],
+          [44, 'IVA débito'], [38, 'IVA crédito directo'], [39, 'IVA crédito indistinto'], [164, 'IVA crédito por prorrateo'], [42, 'IVA crédito por NC emitidas'], [45, 'IVA crédito total'],
+          [46, 'Saldo técnico anterior'], [47, 'Saldo técnico a trasladar'], [50, 'Impuesto determinado'], [51, 'Saldo financiero anterior'], [52, 'Retenciones'], [169, 'Percepciones'],
+          [54, 'Saldo financiero a trasladar'], [58, 'Saldo a pagar'], [64, 'IVA costo o gasto']];
+        const noSuma = [46, 47, 51, 54];
+        const filas = CAS.map(([n, t]) => { const v = fs.map(f => f.k['c' + n]); return [n, t].concat(v, noSuma.includes(n) ? [''] : [v.reduce((a, b) => a + b, 0)]); });
+        const ws = X.hoja(X.encabezado(cliente(), `RESUMEN ANUAL IVA (Form. 120) – ${y}`).concat([head], filas), { anchos: [8, 30].concat(new Array(13).fill(14)) });
+        Object.keys(ws).forEach(ref => { if (/^A\d+$/.test(ref) && ws[ref].t === 'n') ws[ref].z = '0'; });
         X.descargar([{ nombre: `IVA ${y}`, ws }], `resumen_IVA_${y}_${slug(cliente().razon)}.xlsx`);
       };
     }
@@ -842,9 +867,71 @@
     }
   };
 
+  /* ================= RG 90 ================= */
+  const vistaRG90 = {
+    html() {
+      const c = cfg();
+      const anual = !!st.rg90Anual;
+      const periodo = anual ? st.periodo.slice(0, 4) : st.periodo;
+      const r = C.rg90(datos(), st.periodo, { anual, ventas: st.rg90Ventas !== false, compras: st.rg90Compras !== false });
+      const ver = st.rg90Version || 1;
+      const nombre = C.rg90NombreArchivo(cliente().ruc, st.periodo, ver, anual);
+      const sel = (k, n) => `<label>${n}<select data-rg90="${k}"><option value="S" ${c[k] === 'S' ? 'selected' : ''}>S</option><option value="N" ${c[k] !== 'S' ? 'selected' : ''}>N</option></select></label>`;
+      const nV = r.lineas.filter(l => !l.esCompra).length, nC = r.lineas.length - nV;
+      return `<section class="card"><h2>Registro de comprobantes – RG 90/2021 (importación en Marangatu)</h2>
+        <div class="form cols4">
+          <label>Obligación <select id="r-tipo"><option value="M">955 – Registro mensual</option><option value="A" ${anual ? 'selected' : ''}>956 – Registro anual</option></select></label>
+          <label>${anual ? 'Año' : 'Período'} ${anual ? `<input type="number" id="r-anio" value="${periodo}">` : `<input type="month" id="per" value="${st.periodo}">`}</label>
+          <label>N° de envío (versión del archivo) <input type="number" min="1" id="r-ver" value="${ver}"></label>
+          <label>Incluir <span><label class="chk inline"><input type="checkbox" id="r-v" ${st.rg90Ventas !== false ? 'checked' : ''}> Ventas</label> <label class="chk inline"><input type="checkbox" id="r-c" ${st.rg90Compras !== false ? 'checked' : ''}> Compras</label></span></label>
+          ${sel('rg90ImputaIVA', 'Imputa al IVA')}${sel('rg90ImputaIRE', 'Imputa al IRE')}${sel('rg90ImputaIRP', 'Imputa al IRP-RSP')}
+        </div>
+        <p class="muted">Archivo: <b>${esc(nombre)}.csv</b> dentro de <b>${esc(nombre)}.zip</b> · CSV separado por comas, UTF-8, sin encabezado, montos con IVA incluido sin separador de miles, fechas dd/mm/aaaa.
+          Se excluyen los comprobantes marcados como <b>electrónicos/virtuales</b> (Marangatu ya los tiene). Notas de crédito: código 110 con el comprobante asociado.</p>
+        <div class="acciones"><button id="r-zip" class="primary">Descargar ZIP para Marangatu</button> <button id="r-csv">Descargar CSV</button> <button id="r-xls">Vista previa en Excel</button></div>
+        <div class="${r.errores.length ? 'alerta' : 'okbox'}"><b>${nV} ventas y ${nC} compras a informar.</b> ${r.errores.length ? `${r.errores.length} comprobantes con observaciones (Marangatu los rechazaría):<ul>${r.errores.slice(0, 30).map(e => `<li>${esc(e)}</li>`).join('')}</ul>` : 'Sin observaciones de validación.'}</div>
+        ${r.excluidos.length ? `<details><summary>${r.excluidos.length} comprobantes electrónicos/virtuales excluidos</summary><ul>${r.excluidos.map(e => `<li>${esc(e)}</li>`).join('')}</ul></details>` : ''}
+        <div class="scroll"><table class="grid"><thead><tr>${RG90_COLS.map((h, i) => `<th title="${esc(h)}">${i + 1}</th>`).join('')}</tr></thead><tbody>
+        ${r.lineas.slice(0, 300).map(l => `<tr class="${l.ok ? '' : 'nc'}">${l.campos.map(v => `<td>${esc(v)}</td>`).join('')}</tr>`).join('')}
+        </tbody></table></div>
+        <p class="muted">Campos: ${RG90_COLS.map((h, i) => `${i + 1}. ${h}`).join(' · ')}</p>
+      </section>`;
+    },
+    bind() {
+      const d = datos();
+      if ($('#per')) $('#per').onchange = e => { if (e.target.value) { st.periodo = e.target.value; render(); } };
+      if ($('#r-anio')) $('#r-anio').onchange = e => { st.periodo = `${e.target.value}-${st.periodo.slice(5, 7)}`; render(); };
+      $('#r-tipo').onchange = e => { st.rg90Anual = e.target.value === 'A'; render(); };
+      $('#r-ver').onchange = e => { st.rg90Version = Math.max(1, +e.target.value || 1); render(); };
+      $('#r-v').onchange = e => { st.rg90Ventas = e.target.checked; render(); };
+      $('#r-c').onchange = e => { st.rg90Compras = e.target.checked; render(); };
+      $$('[data-rg90]').forEach(sl => sl.onchange = () => { d.config = Object.assign({}, d.config, { [sl.dataset.rg90]: sl.value }); S.save(); render(); });
+      const gen = () => {
+        const anual = !!st.rg90Anual;
+        const r = C.rg90(d, st.periodo, { anual, ventas: st.rg90Ventas !== false, compras: st.rg90Compras !== false });
+        if (!r.lineas.length) { toast('No hay comprobantes para informar en el período', 'error'); return null; }
+        if (r.errores.length && !confirm(`${r.errores.length} comprobantes tienen observaciones y Marangatu podría rechazarlos. ¿Generar igual?`)) return null;
+        return { r, nombre: C.rg90NombreArchivo(cliente().ruc, st.periodo, st.rg90Version || 1, anual) };
+      };
+      $('#r-zip').onclick = () => { const g = gen(); if (g) X.bajarBlob(X.zip([{ nombre: g.nombre + '.csv', texto: g.r.csv }]), g.nombre + '.zip', 'application/zip'); };
+      $('#r-csv').onclick = () => { const g = gen(); if (g) X.bajarBlob(new TextEncoder().encode(g.r.csv), g.nombre + '.csv', 'text/csv'); };
+      $('#r-xls').onclick = () => {
+        const r = C.rg90(d, st.periodo, { anual: !!st.rg90Anual });
+        const v = r.lineas.filter(l => !l.esCompra).map(l => l.campos), c = r.lineas.filter(l => l.esCompra).map(l => l.campos);
+        X.descargar([{ nombre: 'Ventas RG90', ws: X.hoja([RG90_COLS.filter((h, i) => i !== 17)].concat(v)) },
+          { nombre: 'Compras RG90', ws: X.hoja([RG90_COLS].concat(c)) },
+          { nombre: 'Observaciones', ws: X.hoja([['Observación']].concat(r.errores.map(e => [e]), r.excluidos.map(e => [e]))) }],
+          `RG90_${st.periodo}_${slug(cliente().razon)}.xlsx`);
+      };
+    }
+  };
+  const RG90_COLS = ['Tipo de registro (1 venta, 2 compra)', 'Tipo de identificación', 'N° de identificación', 'Nombre o razón social', 'Tipo de comprobante', 'Fecha de emisión', 'Timbrado',
+    'N° de comprobante', 'Gravado 10% (IVA incl.)', 'Gravado 5% (IVA incl.)', 'Exento / no gravado', 'Total', 'Condición (1 contado, 2 crédito)', 'Moneda extranjera',
+    'Imputa IVA', 'Imputa IRE', 'Imputa IRP-RSP', 'No imputa (solo compras)', 'Comprobante asociado', 'Timbrado asociado'];
+
   const VISTAS = {
     clientes: vistaClientes, plan: vistaPlan, ventas: vistaComprobantes('ventas'), compras: vistaComprobantes('compras'),
-    asientos: vistaAsientos, tc: vistaTC, balances: vistaBalances, f120: vistaF120, f500: vistaF500
+    asientos: vistaAsientos, tc: vistaTC, balances: vistaBalances, f120: vistaF120, f500: vistaF500, rg90: vistaRG90
   };
 
   /* ---------- inicio ---------- */
