@@ -380,8 +380,9 @@
     const cm = +cierreMes || 12;
     // DJ del ejercicio cerrado el año anterior y anticipos del ejercicio en curso (vencen dentro del año calendario)
     const ejAnt = anio - 1;
-    out.push({ fecha: vto(ejAnt, cm + (+opts.mesesVtoIRE || 4)), obligacion: 'IRE – Formulario 500 (DJ anual)', periodo: `Ejercicio ${ejAnt}` });
-    String(opts.mesesAnticiposIRE || '').split(',').map(Number).filter(Boolean).forEach((k, i) => out.push({ fecha: vto(ejAnt, cm + k), obligacion: `IRE – anticipo ${i + 1}`, periodo: `Ejercicio ${ejAnt + 1}` }));
+    if (opts.regimen === 'RESIMPLE') out.push({ fecha: C.diaHabil(`${anio}-02-26`, opts.feriados), obligacion: 'IRE RESIMPLE – DJ anual', periodo: `Ejercicio ${ejAnt}` });
+    else out.push({ fecha: vto(ejAnt, cm + (+opts.mesesVtoIRE || 4)), obligacion: 'IRE – Formulario 500 (DJ anual)', periodo: `Ejercicio ${ejAnt}` });
+    if (opts.regimen !== 'RESIMPLE') String(opts.mesesAnticiposIRE || '').split(',').map(Number).filter(Boolean).forEach((k, i) => out.push({ fecha: vto(ejAnt, cm + k), obligacion: `IRE – anticipo ${i + 1}`, periodo: `Ejercicio ${ejAnt + 1}` }));
     if (opts.irp) out.push({ fecha: vto(anio, 3), obligacion: 'IRP – DJ anual (verificar mes)', periodo: `Año ${anio - 1}` });
     out.sort((a, b) => a.fecha.localeCompare(b.fecha));
     return { digito: dig, dia, items: out };

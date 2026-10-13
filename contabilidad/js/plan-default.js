@@ -135,6 +135,7 @@
     ['2.1.3.02.01', 'Sueldos a pagar'],
     ['2.1.3.02.02', 'IPS a pagar'],
     ['2.1.3.02.03', 'Aguinaldos a pagar'],
+    ['2.1.3.02.04', 'Vacaciones a pagar'],
     ['2.1.3.03', 'Otras deudas'],
     ['2.1.3.03.01', 'Anticipos de clientes'],
     ['2.1.3.03.02', 'Cuentas particulares de socios'],
@@ -198,12 +199,14 @@
     ['5.1.1.01.01', 'Costo de mercaderías vendidas'],
     ['5.1.1.01.02', 'Compras de mercaderías'],
     ['5.1.1.01.03', 'Costo de servicios prestados'],
+    ['5.1.1.01.04', 'Diferencias de inventario'],
     ['5.2', 'GASTOS OPERATIVOS'],
     ['5.2.1', 'GASTOS DE ADMINISTRACIÓN', 'ER_ADM'],
     ['5.2.1.01', 'Gastos de personal'],
     ['5.2.1.01.01', 'Sueldos y jornales'],
     ['5.2.1.01.02', 'Aporte patronal IPS'],
     ['5.2.1.01.03', 'Aguinaldos'],
+    ['5.2.1.01.04', 'Vacaciones'],
     ['5.2.1.02', 'Gastos generales'],
     ['5.2.1.02.01', 'Alquileres'],
     ['5.2.1.02.02', 'Energía eléctrica'],
@@ -225,6 +228,7 @@
     ['5.2.2.01.02', 'Comisiones sobre ventas'],
     ['5.2.2.01.03', 'Fletes y acarreos'],
     ['5.2.2.01.04', 'Deudores incobrables'],
+    ['5.2.2.01.05', 'Cargo por previsión para incobrables'],
     ['5.3', 'RESULTADOS FINANCIEROS'],
     ['5.3.1', 'GASTOS FINANCIEROS', 'ER_GFIN'],
     ['5.3.1.01', 'Gastos financieros'],
@@ -293,7 +297,19 @@
     // Cuentas corrientes y vencimientos
     plazoDias: 30, mesesAnticiposIRE: '6,8,10,12', mesesVtoIRE: 4,
     // Bloqueo de períodos declarados (fecha AAAA-MM-DD; vacío = sin bloqueo)
-    cerradoHasta: ''
+    cerradoHasta: '',
+    // Inventario: 'PERIODICO' (recuentos) o 'PERMANENTE' (kardex con costo promedio)
+    inventarioMetodo: 'PERIODICO', ctaMercaderias: '1.1.5.01.01', ctaCMV: '5.1.1.01.01', ctaDifInventario: '5.1.1.01.04',
+    // Liquidación mensual de IVA
+    liquidarIVA: true, ctaIvaSaldoFavor: '1.1.4.01.06', ctaIvaAPagar: '2.1.3.01.03',
+    // Cierre de ejercicio
+    previsionDias: 180, previsionPct: 100, ctaPrevision: '1.1.3.01.03', ctaCargoPrevision: '5.2.2.01.05',
+    ctaVacacionesGasto: '5.2.1.01.04', ctaVacacionesAPagar: '2.1.3.02.04',
+    ctaIREGasto: '5.5.1.01.01', ctaIREAPagar: '2.1.3.01.04',
+    ctaReservaLegal: '3.2.1.01.01', pctReservaLegal: 5, topeReservaLegalPct: 20, ctaResultadoEjercicio: '3.3.1.02.01',
+    // Régimen del IRE: 'GENERAL', 'SIMPLE' o 'RESIMPLE' (topes y cuotas: verificar vigencia)
+    regimenIRE: 'GENERAL', topeSimple: 2000000000, topeResimple: 80000000, pctRentaPresuntaSimple: 30, metodoSimple: 'REAL',
+    resimpleTramos: '20000000:20000;40000000:40000;60000000:60000;80000000:80000'
   };
 
   root.PlanDefault = { RUBROS_RG49, PLAN_DEFAULT, CONFIG_DEFAULT };

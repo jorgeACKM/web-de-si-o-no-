@@ -25,6 +25,7 @@
       const existe = lista.some(x => (doc.cdc && x.cdc === doc.cdc) || (doc.numero && x.numero === doc.numero && x.ruc === doc.ruc && x.tipoDoc === doc.tipoDoc && (!doc.timbrado || x.timbrado === doc.timbrado)));
       if (existe) { dup++; return; }
       doc.id = S.uid();
+      if (A.alImportarDoc) A.alImportarDoc(doc, esCompra); // ítems → inventario
       if (esCompra) {
         doc.afectacion = doc.afectacion || ((d.terceros || {})[doc.ruc] || {}).afectacion || 'GRAVADA';
         if (!doc.cuenta) { const sg = C.sugerirCuenta(d, doc.ruc, doc.razon, A.plan); if (sg) doc.cuenta = sg.cuenta; }
@@ -500,7 +501,7 @@
   /* ======================= VENCIMIENTOS ======================= */
   function opcionesVto(cli) {
     const d = S.db().data[cli.id] || {}, c = C.config(d);
-    return { mesesAnticiposIRE: c.mesesAnticiposIRE, mesesVtoIRE: c.mesesVtoIRE, ips: (d.empleados || []).length > 0,
+    return { regimen: c.regimenIRE, mesesAnticiposIRE: c.mesesAnticiposIRE, mesesVtoIRE: c.mesesVtoIRE, ips: (d.empleados || []).length > 0,
       retenciones: (d.retenciones || []).some(r => r.tipo === 'EMITIDA') || (d.dividendos || []).length > 0, irp: c.rg90ImputaIRP === 'S' };
   }
   A.registrar('vencimientos', 'Vencimientos', 'Control', {

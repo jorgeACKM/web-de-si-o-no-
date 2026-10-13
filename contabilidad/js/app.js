@@ -95,13 +95,19 @@
     ['ctaIDUADepositar', 'IDU retenido a depositar'], ['ctaDividendosAPagar', 'Dividendos a pagar'],
     ['ctaSueldos', 'Sueldos y jornales (gasto)'], ['ctaAportePatronal', 'Aporte patronal IPS (gasto)'], ['ctaAguinaldoGasto', 'Aguinaldo (gasto)'],
     ['ctaSueldosAPagar', 'Sueldos a pagar'], ['ctaIPSAPagar', 'IPS a pagar'], ['ctaAguinaldoAPagar', 'Aguinaldos a pagar'], ['ctaDescuentosPersonal', 'Anticipos / préstamos al personal'],
-    ['ctaDepGasto', 'Depreciación (gasto por defecto)']
+    ['ctaDepGasto', 'Depreciación (gasto por defecto)'],
+    ['ctaMercaderias', 'Mercaderías (inventario)'], ['ctaCMV', 'Costo de mercaderías vendidas'], ['ctaDifInventario', 'Diferencias de inventario'],
+    ['ctaIvaSaldoFavor', 'IVA saldo a favor'], ['ctaIvaAPagar', 'IVA a pagar'], ['ctaPrevision', 'Previsión para incobrables'], ['ctaCargoPrevision', 'Cargo por previsión (gasto)'],
+    ['ctaVacacionesGasto', 'Vacaciones (gasto)'], ['ctaVacacionesAPagar', 'Vacaciones a pagar'], ['ctaIREGasto', 'IRE (gasto)'], ['ctaIREAPagar', 'IRE a pagar'],
+    ['ctaReservaLegal', 'Reserva legal'], ['ctaResultadoEjercicio', 'Resultado del ejercicio']
   ];
   const PARAMS = [['tasaIRE', 'Tasa IRE (%)'], ['limiteQuebrantoPct', 'Límite compensación de quebrantos (% renta neta)'],
     ['pctAnticipo', 'Anticipo IRE (% por cuota)'], ['cantAnticipos', 'Cantidad de anticipos'], ['limiteDonacionesPct', 'Límite donaciones (% renta neta)'],
     ['pctIPSObrero', 'IPS aporte obrero (%)'], ['pctIPSPatronal', 'IPS aporte patronal (%)'], ['pctIDUResidente', 'IDU residentes (%)'], ['pctIDUNoResidente', 'IDU no residentes (%)'],
-    ['plazoDias', 'Plazo de crédito por defecto (días)'], ['mesesVtoIRE', 'Vencimiento DJ IRE (meses después del cierre)']];
-  const PARAMS_TXT = [['irpTramos', 'Tramos IRP (hasta:tasa;…)'], ['mesesAnticiposIRE', 'Anticipos IRE (meses después del cierre)'], ['grupoDepreciaciones', 'Grupo de cuentas de depreciaciones (flujo de efectivo)']];
+    ['plazoDias', 'Plazo de crédito por defecto (días)'], ['mesesVtoIRE', 'Vencimiento DJ IRE (meses después del cierre)'],
+    ['previsionDias', 'Previsión incobrables: días de vencido'], ['previsionPct', 'Previsión incobrables: %'], ['pctReservaLegal', 'Reserva legal (% de la utilidad)'], ['topeReservaLegalPct', 'Tope reserva legal (% del capital)'],
+    ['topeSimple', 'Tope de ingresos IRE SIMPLE'], ['topeResimple', 'Tope de ingresos IRE RESIMPLE'], ['pctRentaPresuntaSimple', 'Renta presunta IRE SIMPLE (%)']];
+  const PARAMS_TXT = [['resimpleTramos', 'Cuotas RESIMPLE (ingresos hasta:cuota mensual;…)'], ['irpTramos', 'Tramos IRP (hasta:tasa;…)'], ['mesesAnticiposIRE', 'Anticipos IRE (meses después del cierre)'], ['grupoDepreciaciones', 'Grupo de cuentas de depreciaciones (flujo de efectivo)']];
 
   const vistaClientes = {
     html() {
@@ -579,7 +585,7 @@
       const exportarDiario = (desde, hasta) => {
         const aoa = X.encabezado(cliente(), 'LIBRO DIARIO', `Período: ${fd(desde)} al ${fd(hasta)}`).concat([['N°', 'Fecha', 'Concepto', 'Origen', 'Cuenta', 'Nombre de la cuenta', 'Debe', 'Haber']]);
         let n = 0, td = 0, th = 0;
-        C.todosLosAsientos(d).filter(a => a.fecha >= desde && a.fecha <= hasta).forEach(a => {
+        (C.libroDiario ? C.libroDiario(d, plan, desde, hasta, true) : C.todosLosAsientos(d).filter(a => a.fecha >= desde && a.fecha <= hasta)).forEach(a => {
           n++;
           a.lineas.forEach((l, i) => { td += l.debe; th += l.haber; aoa.push([i ? '' : n, i ? '' : fd(a.fecha), i ? '' : a.concepto, i ? '' : a.origen, l.cuenta, nombreCta(l.cuenta), l.debe || '', l.haber || '']); });
         });

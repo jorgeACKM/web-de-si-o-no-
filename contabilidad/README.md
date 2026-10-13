@@ -36,6 +36,17 @@ Los datos quedan guardados en el navegador; use **Clientes → Descargar respald
 | **Cierre de períodos** | Bloquea altas, cambios y bajas con fecha dentro de los meses ya declarados. |
 | **Tipos de cambio** | Además de la carga manual: completar meses vacíos y obtener una cotización **referencial** en línea. |
 
+## Cierre contable e inventario
+
+| Módulo | Qué hace |
+|---|---|
+| **Inventario y costo de ventas** | Productos, movimientos (inicial, entradas, salidas, devoluciones, ajustes) y **kardex con costo promedio ponderado**. Método **periódico** (cada recuento pasa las compras a Mercaderías y la diferencia a Costo de ventas: CMV = inventario inicial + compras − inventario final) o **permanente** (costo de cada salida al promedio, asiento mensual; faltantes y sobrantes a "Diferencias de inventario"). Inventario valorizado y kardex en Excel. Los XML de facturas electrónicas con ítems crean los productos y movimientos solos. |
+| **Liquidación mensual de IVA** | Asiento automático a fin de cada mes: cierra IVA débito, crédito y retenciones contra **IVA a pagar** o **IVA saldo a favor**, que se compensa solo en los meses siguientes. |
+| **Asientos de cierre del ejercicio** | Se marcan por ejercicio y se recalculan solos: **previsión para incobrables** (saldos vencidos > N días al %), **provisión de vacaciones** (12/18/30 días según antigüedad), **impuesto a la renta** del régimen del cliente (compensa anticipos y retenciones de IRE) y **reserva legal** (5% de la utilidad hasta el 20% del capital, al inicio del ejercicio siguiente). |
+| **Apertura y saldos iniciales** | Los saldos pasan solos de un ejercicio a otro. El Libro Diario muestra los asientos de **apertura, refundición y cierre**. Importación de **saldos iniciales** desde Excel (Código, Cuenta, Debe, Haber o Saldo) para clientes que vienen de otro sistema. |
+| **Libros rubricados** | **Libro Diario** (con "van / vienen"), **Libro Mayor** y **Libro Inventario** (cada rubro con sus cuentas, saldos de clientes y proveedores, mercaderías valorizadas, bienes de uso y estado de resultados) en hojas A4 con **folio inicial configurable** y firmas del representante legal y del contador, listos para imprimir o guardar en PDF. |
+| **IRE por régimen** | **GENERAL** (Form. 500), **SIMPLE** (renta real = ingresos − egresos, o presunta como % de los ingresos, con comparación de cuál conviene) y **RESIMPLE** (cuota fija mensual según los ingresos del ejercicio anterior). Alertas cuando los ingresos superan el tope del régimen. |
+
 ## Trabajo en equipo: servidor con usuarios y respaldos
 
 Sin servidor, los datos quedan en el navegador. Para trabajar varias personas sobre la misma base, con usuarios y respaldos automáticos, en una PC de la oficina con Node.js 18+:
@@ -68,6 +79,8 @@ node server/server.js                                         # http://localhost
 - En la carga, marque **Electrónico/virtual** los comprobantes SIFEN (no van al RG 90). Para clasificar operaciones agrícolas o de flete internacional use la columna *Clase* del Excel o la opción del Form. 120.
 - Los parámetros del IRE (tasa 10%, límite de quebrantos 20%, donaciones 1%, anticipos 4 × 25% en los meses 6/8/10/12 posteriores al cierre), IPS (9% / 16,5%), IDU (8% / 15%) y tramos del IRP son editables en *Clientes*; confirme la normativa vigente para cada ejercicio.
 - El calendario de vencimientos no contempla feriados móviles; verifique con el calendario oficial de la DNIT.
+- Regímenes SIMPLE y RESIMPLE: los topes (Gs. 2.000 millones y Gs. 80 millones) surgen de la Ley 6380/2019; el porcentaje de renta presunta del SIMPLE (30%) y los tramos de cuota del RESIMPLE (Gs. 20.000 a 80.000 mensuales) son configurables y deben verificarse con la reglamentación vigente.
+- Reserva legal (5% hasta el 20% del capital), previsión de incobrables y vacaciones: parámetros configurables; revise el tratamiento fiscal (deducibilidad) de cada previsión.
 - La conversión a dólares usa el tipo de cambio de cierre de cada fecha de corte.
 - Los comprobantes pueden cargarse en guaraníes o en US$ (con el tipo de cambio del comprobante).
 
@@ -78,5 +91,6 @@ node server/server.js                                         # http://localhost
 - `js/excel.js`, `js/store.js`, `js/app.js`: Excel, almacenamiento e interfaz.
 - `vendor/xlsx.full.min.js`: SheetJS 0.18.5 (Apache 2.0) incluido para funcionar sin internet.
 - `js/core-ext.js`: módulos de tesorería, personal, impuestos, estados RG 49, vencimientos, importaciones.
+- `js/core-cierre.js` y `js/app-cierre.js`: inventario, liquidación de IVA, cierre de ejercicio, libros rubricados y regímenes del IRE.
 - `js/app-ext.js`: pantallas de esos módulos. `server/server.js`: servidor multiusuario sin dependencias.
 - Pruebas: `cd contabilidad && npm test`

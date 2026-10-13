@@ -269,7 +269,21 @@
 
   C.config = data => Object.assign({}, PD.CONFIG_DEFAULT, data.config || {});
 
+  // Etapas de cierre de ejercicio (previsiones → IRE → reserva legal). data.__etapa limita cuántas se incluyen
+  // (las usa el propio cierre para calcular sobre los asientos anteriores sin recursión infinita).
+  C.etapasCierre = [];
+  const cacheAsientos = typeof WeakMap !== 'undefined' ? new WeakMap() : null;
+  const CLAVES_FIRMA = ['ventas', 'compras', 'asientos', 'pagos', 'retenciones', 'bienes', 'planillas', 'empleados', 'recurrentes', 'dividendos',
+    'config', 'tiposCambio', 'cuentas', 'productos', 'movInventario', 'conteos', 'cierresEjercicio', 'f120', 'f500', 'irp'];
   C.todosLosAsientos = function (data) {
+    const etapa = data.__etapa === undefined ? C.etapasCierre.length : data.__etapa;
+    let raiz = data; while (raiz.__etapa !== undefined && Object.getPrototypeOf(raiz) && Object.getPrototypeOf(raiz) !== Object.prototype) raiz = Object.getPrototypeOf(raiz);
+    let firma = null;
+    if (cacheAsientos) {
+      firma = JSON.stringify(CLAVES_FIRMA.map(k => raiz[k])) + '|' + ((raiz.cliente && raiz.cliente.cierreMes) || '');
+      const c = cacheAsientos.get(raiz);
+      if (c && c.firma === firma && c.res[etapa]) return c.res[etapa];
+    }
     const cfg = C.config(data);
     const a = [];
     (data.asientos || []).forEach(x => a.push(Object.assign({ origen: 'manual' }, x)));
@@ -278,10 +292,21 @@
     C.asientosProrrateo(data, cfg).forEach(x => a.push(x));
     // Módulos adicionales (cobros, retenciones, depreciación, sueldos, recurrentes, IDU…)
     C.generadores.forEach(g => g(data, cfg).forEach(x => a.push(x)));
-    a.sort((x, y) => (x.fecha < y.fecha ? -1 : x.fecha > y.fecha ? 1 : 0));
-    // Ajustes que dependen de todo lo anterior (diferencia de cambio)
-    C.postGeneradores.forEach(g => g(data, cfg, a).forEach(x => a.push(x)));
-    if (C.postGeneradores.length) a.sort((x, y) => (x.fecha < y.fecha ? -1 : x.fecha > y.fecha ? 1 : 0));
+    const ord = () => a.sort((x, y) => (x.fecha < y.fecha ? -1 : x.fecha > y.fecha ? 1 : 0));
+    ord();
+    // Ajustes que dependen de todo lo anterior (inventario periódico, diferencia de cambio, liquidación de IVA)
+    C.postGeneradores.forEach(g => { g(data, cfg, a).forEach(x => a.push(x)); ord(); });
+    // Asientos de cierre de ejercicio
+    for (let i = 0; i < etapa && i < C.etapasCierre.length; i++) {
+      const sub = Object.create(raiz); sub.__etapa = i;
+      C.etapasCierre[i](sub, cfg, a).forEach(x => a.push(x));
+      ord();
+    }
+    if (cacheAsientos) {
+      let c = cacheAsientos.get(raiz);
+      if (!c || c.firma !== firma) { c = { firma, res: {} }; cacheAsientos.set(raiz, c); }
+      c.res[etapa] = a;
+    }
     return a;
   };
   C.generadores = [];
