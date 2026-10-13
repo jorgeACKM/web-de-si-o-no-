@@ -161,4 +161,9 @@ const servidor = http.createServer(async (req, res) => {
   }
 });
 
-servidor.listen(PORT, () => console.log(`ContaPY servidor en http://localhost:${PORT}  (datos en ${DATOS})`));
+servidor.listen(PORT, () => {
+  const ips = Object.values(require('os').networkInterfaces()).flat().filter(i => i && i.family === 'IPv4' && !i.internal).map(i => i.address);
+  console.log(`\n  ContaPY funcionando.\n  En esta PC:          http://localhost:${PORT}`);
+  ips.forEach(ip => console.log(`  Desde otras PCs:     http://${ip}:${PORT}`));
+  console.log(`  Datos y respaldos:   ${DATOS}\n`);
+});
