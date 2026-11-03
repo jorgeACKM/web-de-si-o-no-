@@ -37,6 +37,13 @@ externo o a la nube una vez por semana.
 - El menú está ordenado en desplegables: **Cliente**, **Operaciones**, **Tesorería**,
   **Impuestos** (IVA, IRE, IRP e IDU), **Informes** y **Cierre**. Cada opción tiene una
   descripción corta. En **Inicio → Personalizar menú** puede ocultar los módulos que no use.
+- En cada venta o compra se marca **a qué impuesto imputa** (IVA, IRE, IRP) y se puede
+  escribir un **concepto**. El proveedor o cliente recuerda la última imputación. Los valores
+  por defecto de cada cliente se eligen en Cliente → Clientes ("Impuestos de los comprobantes").
+  Lo que no imputa al IVA no entra en el Form. 120 y su IVA va al gasto.
+- **Cuentas de IRP**: el plan estándar trae los grupos 4.3 (ingresos IRP) y 5.6 (egresos
+  personales IRP), cada cuenta con su casilla del Form. 515 (columna "Cas. IRP"). Para clientes
+  creados antes, use Plan de cuentas → "Agregar cuentas de IRP".
 - **IRP**: Impuestos → IRP → Form. 515 (servicios personales) o Form. 516 (rentas del capital).
   En el 515, las casillas en azul son valores sugeridos por la contabilidad; escriba encima para cambiarlos.
 - En el **Form. 120**, toque el número de una casilla para ver qué va ahí según el instructivo

@@ -40,6 +40,8 @@
     const claves = {}, dups = [];
     delMes.forEach(([x, t]) => { const k = `${t}|${x.tipoDoc}|${x.ruc}|${x.timbrado}|${x.numero}`; if (x.numero && claves[k]) dups.push(t); claves[k] = 1; });
     if (dups.length) out.push(['aviso', `${pl(dups.length, 'posible comprobante duplicado', 'posibles comprobantes duplicados')}.`, dups[0]]);
+    const ventasSinIVA = delMes.filter(([x, t]) => t === 'ventas' && C.desglose(x).iva && !C.imputa(x, e.cfg).iva);
+    if (ventasSinIVA.length) out.push(['aviso', `${pl(ventasSinIVA.length, 'venta')} con IVA que no ${ventasSinIVA.length === 1 ? 'imputa' : 'imputan'} al IVA: no entran en el Form. 120.`, 'ventas']);
     const usd = delMes.some(([x]) => C.esME(x));
     if (usd && !C.tcDelMes(d, periodo)) out.push(['aviso', 'Hay comprobantes en US$ y falta el tipo de cambio de cierre del mes.', 'tc']);
     try { const R = C.rubrosAl(d, plan, C.finDeMes(periodo)); if (R.tot.diferencia) out.push(['error', `El balance no cuadra al ${fd(C.finDeMes(periodo))} (diferencia ${fmt(R.tot.diferencia)}).`, 'balances']); } catch (err) { /* sin plan */ }
@@ -107,7 +109,7 @@
         <div class="scroll"><table class="grid"><thead><tr><th>Cliente</th><th>RUC</th><th>Régimen</th><th>Ventas</th><th>Compras</th><th>IVA del mes</th><th>RG 90</th><th>Período</th><th></th></tr></thead><tbody>
         ${S.db().clientes.map(c => { const x = estadoCliente(c, p), fx = x.f; return `<tr class="${c.id === cli.id ? 'sel' : ''}"><td>${esc(c.razon)}</td><td>${esc(c.ruc)}</td><td>${esc(x.cfg.regimenIRE)}</td>
           <td class="n">${fmt(x.totVentas)}</td><td class="n">${fmt(x.totCompras)}</td><td class="n">${fx ? (fx.k.c58 ? `<span class="err">a pagar ${fmt(fx.k.c58)}</span>` : `a favor ${fmt(fx.k.c47 + fx.k.c54)}`) : ''}</td>
-          <td class="c">${x.rg90 ? '✔' : '—'}</td><td class="c">${x.cerrado ? '🔒 cerrado' : 'abierto'}</td><td>${c.id === cli.id ? '' : `<button class="mini" data-cli="${c.id}">Trabajar</button>`}</td></tr>`; }).join('')}
+          <td class="c">${x.rg90 ? '✔' : '—'}</td><td class="c">${x.cerrado ? 'cerrado' : 'abierto'}</td><td>${c.id === cli.id ? '' : `<button class="mini" data-cli="${c.id}">Trabajar</button>`}</td></tr>`; }).join('')}
         </tbody></table></div></section>
       <section class="card"><details><summary><b>Personalizar menú</b> – elija qué módulos ver</summary>
         <p class="muted">Desmarque los módulos que no use para que no aparezcan en los menús desplegables. "Menú simple" deja solo lo esencial para la contabilidad mensual.</p>

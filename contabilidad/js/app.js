@@ -70,13 +70,13 @@
 
   /* ---------- Menús desplegables: por operación y por impuesto ---------- */
   const MENU = [
-    ['Inicio', '🏠', [['', ['inicio']]]],
-    ['Cliente', '🏢', [['Datos y configuración', ['clientes', 'plan', 'tc']]]],
-    ['Operaciones', '🧾', [['Comprobantes', ['ventas', 'compras', 'importar']], ['Contabilidad', ['asientos', 'recurrentes']], ['Existencias y activo fijo', ['inventario', 'bienes']], ['Personal', ['sueldos']]]],
-    ['Tesorería', '💵', [['Cobros, pagos y bancos', ['tesoreria', 'bancos']]]],
-    ['Impuestos', '🏛️', [['IVA', ['f120', 'rg90']], ['IRE – Renta empresarial', ['f500']], ['IRP – Renta personal', ['f515', 'f516']], ['IDU – Dividendos', ['idu']], ['Para todos los impuestos', ['retenciones', 'vencimientos']]]],
-    ['Informes', '📊', [['Estados contables', ['balances']], ['Libros', ['libros', 'asientos']]]],
-    ['Cierre', '🔒', [['Mensual', ['cierre']], ['Anual', ['cierreej']]]]
+    ['Inicio', '', [['', ['inicio']]]],
+    ['Cliente', '', [['Datos y configuración', ['clientes', 'plan', 'tc']]]],
+    ['Operaciones', '', [['Comprobantes', ['ventas', 'compras', 'importar']], ['Contabilidad', ['asientos', 'recurrentes']], ['Existencias y activo fijo', ['inventario', 'bienes']], ['Personal', ['sueldos']]]],
+    ['Tesorería', '', [['Cobros, pagos y bancos', ['tesoreria', 'bancos']]]],
+    ['Impuestos', '', [['IVA', ['f120', 'rg90']], ['IRE – Renta empresarial', ['f500']], ['IRP – Renta personal', ['f515', 'f516']], ['IDU – Dividendos', ['idu']], ['Para todos los impuestos', ['retenciones', 'vencimientos']]]],
+    ['Informes', '', [['Estados contables', ['balances']], ['Libros', ['libros', 'asientos']]]],
+    ['Cierre', '', [['Mensual', ['cierre']], ['Anual', ['cierreej']]]]
   ];
   const DESC = {
     inicio: 'Resumen del mes, tareas y alertas', clientes: 'Datos, parámetros y respaldos', plan: 'Cuentas, rubros RG 49, importar de Excel', tc: 'Cotización US$ de cada mes',
@@ -94,14 +94,14 @@
     const sinCliente = !S.cliente();
     const enMenu = new Set(MENU.flatMap(m => m[2].flatMap(x => x[1])));
     const otros = TABS.map(t => t[0]).filter(k => !enMenu.has(k) && vis.has(k));
-    const menus = MENU.concat(otros.length ? [['Más', '➕', [['Otros', otros]]]] : []);
+    const menus = MENU.concat(otros.length ? [['Más', '', [['Otros', otros]]]] : []);
     const mAct = ubicacion(st.tab)[0];
     $('#tabs').innerHTML = menus.map(([m, ic, secs], i) => {
       const its = secs.map(([sec, items]) => [sec, items.filter(k => nombre[k] && vis.has(k))]).filter(x => x[1].length);
       if (!its.length) return '';
-      const btn = (k, desc) => `<button data-tab="${k}" class="${st.tab === k ? 'active' : ''}" ${sinCliente && k !== 'clientes' && k !== 'inicio' ? 'disabled' : ''}>${desc ? `<b>${esc(nombre[k])}</b><small>${esc(DESC[k] || '')}</small>` : `${ic} ${esc(nombre[k])}`}</button>`;
+      const btn = (k, desc) => `<button data-tab="${k}" class="${st.tab === k ? 'active' : ''}" ${sinCliente && k !== 'clientes' && k !== 'inicio' ? 'disabled' : ''}>${desc ? `<b>${esc(nombre[k])}</b><small>${esc(DESC[k] || '')}</small>` : esc(nombre[k])}</button>`;
       if (its.length === 1 && its[0][1].length === 1) return `<div class="menu solo ${m === mAct ? 'activo' : ''}">${btn(its[0][1][0])}</div>`;
-      return `<div class="menu ${m === mAct ? 'activo' : ''}"><button class="mbtn" type="button" data-menu="${i}" aria-haspopup="true" aria-expanded="false">${ic} ${m} <span class="flecha">▾</span></button>
+      return `<div class="menu ${m === mAct ? 'activo' : ''}"><button class="mbtn" type="button" data-menu="${i}" aria-haspopup="true" aria-expanded="false">${m} <span class="flecha">▾</span></button>
         <div class="panel">${its.map(([sec, items]) => `<div class="sec">${sec ? `<h4>${esc(sec)}</h4>` : ''}${items.map(k => btn(k, true)).join('')}</div>`).join('')}</div></div>`;
     }).join('');
   }
@@ -176,6 +176,7 @@
     ['plazoDias', 'Plazo de crédito por defecto (días)'], ['mesesVtoIRE', 'Vencimiento DJ IRE (meses después del cierre)'],
     ['previsionDias', 'Previsión incobrables: días de vencido'], ['previsionPct', 'Previsión incobrables: %'], ['pctReservaLegal', 'Reserva legal (% de la utilidad)'], ['topeReservaLegalPct', 'Tope reserva legal (% del capital)'],
     ['topeSimple', 'Tope de ingresos IRE SIMPLE'], ['topeResimple', 'Tope de ingresos IRE RESIMPLE'], ['pctRentaPresuntaSimple', 'Renta presunta IRE SIMPLE (%)']];
+  const IMPUTA_DEF = [['rg90ImputaIVA', 'Por defecto imputa al IVA'], ['rg90ImputaIRE', 'Por defecto imputa al IRE'], ['rg90ImputaIRP', 'Por defecto imputa al IRP']];
   const PARAMS_TXT = [['resimpleTramos', 'Cuotas RESIMPLE (ingresos hasta:cuota mensual;…)'], ['irpTramos', 'Tramos IRP (hasta:tasa;…)'], ['mesesAnticiposIRE', 'Anticipos IRE (meses después del cierre)'], ['grupoDepreciaciones', 'Grupo de cuentas de depreciaciones (flujo de efectivo)']];
 
   const vistaClientes = {
@@ -206,6 +207,9 @@
       ${cli ? `<section class="card"><h2>Cuentas utilizadas en los asientos automáticos</h2>
         <p class="muted">Cada factura de compra o venta genera su asiento contable automáticamente usando estas cuentas.</p>
         <div class="form cols3">${CFG_LABELS.map(([k, n]) => `<label>${n}<input list="dl-cuentas" data-cfg="${k}" value="${esc(c[k])}"><small>${esc(nombreCta(c[k])) || '<b class="err">cuenta inexistente</b>'}</small></label>`).join('')}</div>
+        <h3>Impuestos de los comprobantes por defecto</h3>
+        <p class="muted">Se aplican al cargar ventas y compras nuevas (se pueden cambiar en cada comprobante). Ejemplo: profesional independiente → IVA S, IRE N, IRP S.</p>
+        <div class="form cols3">${IMPUTA_DEF.map(([k, n]) => `<label>${n}<select data-cfgt="${k}"><option value="S" ${c[k] !== 'N' && c[k] !== false && !(k === 'rg90ImputaIRP' && c[k] !== 'S') ? 'selected' : ''}>Sí</option><option value="N" ${(k === 'rg90ImputaIRP' ? c[k] !== 'S' : c[k] === 'N' || c[k] === false) ? 'selected' : ''}>No</option></select></label>`).join('')}</div>
         <h3>Parámetros del IRE (Ley 6380/2019 – verificar vigencia)</h3>
         <div class="form cols3">${PARAMS.map(([k, n]) => `<label>${n}<input type="number" step="any" data-cfg="${k}" value="${esc(c[k])}"></label>`).join('')}
           ${PARAMS_TXT.map(([k, n]) => `<label>${n}<input data-cfgt="${k}" value="${esc(c[k])}"></label>`).join('')}</div>
@@ -267,6 +271,7 @@
           <button id="p-imp" class="primary">Importar plan desde Excel</button>
           <button id="p-plantilla">Descargar plantilla / exportar plan</button>
           <button id="p-std">Restaurar plan estándar</button>
+          <button id="p-irp" title="Agrega los grupos 4.3 (ingresos IRP) y 5.6 (egresos personales IRP) con su casilla del Form. 515">Agregar cuentas de IRP</button>
           <input id="p-filtro" placeholder="Buscar código o nombre…" value="${esc(st.filtroPlan)}">
         </div>
         <details><summary>Formato del Excel a importar</summary>
@@ -275,12 +280,13 @@
           El rubro RG 49 se hereda de la cuenta padre: alcanza con asignarlo en el nivel 3 o 4. La plantilla incluye una hoja con la lista de rubros.</p>
         </details>
         ${plan.avisos.length ? `<div class="alerta"><b>${plan.avisos.length} avisos:</b> ${plan.avisos.slice(0, 8).map(esc).join('; ')}${plan.avisos.length > 8 ? '…' : ''}</div>` : ''}
-        <div class="scroll"><table class="grid plan"><thead><tr><th>Código</th><th>Nombre</th><th>Nivel</th><th>Tipo</th><th>Imput.</th><th>Rubro RG 49 (asignado / efectivo)</th><th title="Gasto no deducible IRE">ND</th><th title="Ingreso no gravado IRE">NG</th><th title="Cuenta en moneda extranjera (diferencia de cambio automática)">M/E</th><th></th></tr></thead><tbody>
+        <div class="scroll"><table class="grid plan"><thead><tr><th>Código</th><th>Nombre</th><th>Nivel</th><th>Tipo</th><th>Imput.</th><th>Rubro RG 49 (asignado / efectivo)</th><th title="Gasto no deducible IRE">ND</th><th title="Ingreso no gravado IRE">NG</th><th title="Cuenta en moneda extranjera (diferencia de cambio automática)">M/E</th><th title="Casilla del Form. 515 (IRP) a la que va la cuenta">Cas. IRP</th><th></th></tr></thead><tbody>
         ${filas.map(c => `<tr class="niv${Math.min(c.nivel, 5)}"><td>${esc(c.codigo)}</td><td style="padding-left:${(c.nivel - 1) * 14 + 6}px">${esc(c.nombre)}</td><td class="c">${c.nivel}</td><td class="c">${c.tipo}</td><td class="c">${c.imputable ? '✔' : ''}</td>
           <td><select data-rg="${esc(c.codigo)}">${opts(c.rg49)}</select> <small class="muted">${esc(c.rubro)}</small></td>
           <td class="c">${c.tipo === 'E' ? `<input type="checkbox" data-nd="${esc(c.codigo)}" ${c.noDeducible ? 'checked' : ''}>` : ''}</td>
           <td class="c">${c.tipo === 'I' ? `<input type="checkbox" data-ng="${esc(c.codigo)}" ${c.noGravado ? 'checked' : ''}>` : ''}</td>
           <td class="c">${c.imputable && (c.tipo === 'A' || c.tipo === 'P') ? `<input type="checkbox" data-me="${esc(c.codigo)}" ${c.me === true || c.me === 'S' ? 'checked' : ''}>` : ''}</td>
+          <td class="c">${c.imputable && (c.tipo === 'I' || c.tipo === 'E') ? `<select class="mini-sel" data-irp="${esc(c.codigo)}"><option value=""></option>${(c.tipo === 'I' ? [[10, 'Exonerado'], [12, 'Gravado'], [13, 'Tutor/curador']] : [[15, 'Actividad'], [16, 'Personales país'], [17, 'Salud/educ. exterior'], [18, 'Autovehículo'], [20, 'Seg. social privada'], [21, 'Donaciones'], [23, 'Inmueble vivienda']]).map(([n, t]) => `<option value="${n}" ${+c.irp === n ? 'selected' : ''}>${n} ${t}</option>`).join('')}</select>` : ''}</td>
           <td>${c.imputable ? `<button class="mini danger" data-delc="${esc(c.codigo)}">✕</button>` : ''}</td></tr>`).join('')}
         </tbody></table></div>
         <h3>Agregar cuenta</h3>
@@ -296,6 +302,12 @@
       $$('[data-nd]').forEach(s => s.onchange = () => { cta(s.dataset.nd).noDeducible = s.checked; S.save(); refrescarPlan(); });
       $$('[data-ng]').forEach(s => s.onchange = () => { cta(s.dataset.ng).noGravado = s.checked; S.save(); refrescarPlan(); });
       $$('[data-me]').forEach(s => s.onchange = () => { cta(s.dataset.me).me = s.checked; S.save(); refrescarPlan(); });
+      $$('[data-irp]').forEach(s => s.onchange = () => { cta(s.dataset.irp).irp = s.value ? +s.value : ''; S.save(); refrescarPlan(); });
+      if ($('#p-irp')) $('#p-irp').onclick = () => {
+        const nuevas = PD.PLAN_DEFAULT.filter(c => /^(4\.3|5\.6)(\.|$)/.test(c.codigo) && !cta(c.codigo));
+        if (!nuevas.length) return toast('El plan ya tiene las cuentas de IRP');
+        d.cuentas = d.cuentas.concat(nuevas.map(c => Object.assign({}, c))); S.save(); refrescarPlan(); toast(`${nuevas.length} cuentas de IRP agregadas`); render();
+      };
       $$('[data-delc]').forEach(b => b.onclick = () => {
         const cod = b.dataset.delc;
         const usada = C.todosLosAsientos(d).some(a => a.lineas.some(l => l.cuenta === cod));
@@ -314,8 +326,8 @@
         d.cuentas = PD.PLAN_DEFAULT.map(c => Object.assign({}, c)); S.save(); refrescarPlan(); render();
       };
       $('#p-plantilla').onclick = () => {
-        const aoa = [['Código', 'Nombre', 'Nivel', 'Imputable', 'Tipo', 'Rubro RG49', 'No deducible', 'No gravado', 'Moneda extranjera']]
-          .concat(plan.list.map(c => [c.codigo, c.nombre, c.nivel, c.imputable ? 'S' : 'N', c.tipo, c.rg49 || '', c.noDeducible ? 'S' : '', c.noGravado ? 'S' : '', c.me === true || c.me === 'S' ? 'S' : '']));
+        const aoa = [['Código', 'Nombre', 'Nivel', 'Imputable', 'Tipo', 'Rubro RG49', 'No deducible', 'No gravado', 'Moneda extranjera', 'Casilla IRP']]
+          .concat(plan.list.map(c => [c.codigo, c.nombre, c.nivel, c.imputable ? 'S' : 'N', c.tipo, c.rg49 || '', c.noDeducible ? 'S' : '', c.noGravado ? 'S' : '', c.me === true || c.me === 'S' ? 'S' : '', c.irp || '']));
         const rub = [['Clave', 'Rubro', 'Grupo']].concat(PD.RUBROS_RG49.map(r => [r.key, r.nombre, r.grupo]));
         X.descargar([{ nombre: 'Plan de cuentas', ws: X.hoja(aoa, { anchos: [16, 45, 6, 10, 6, 14, 12, 12] }) }, { nombre: 'Rubros RG49', ws: X.hoja(rub, { anchos: [14, 55, 8] }) }],
           `plan_de_cuentas_${slug(cliente().razon)}.xlsx`);
@@ -368,6 +380,8 @@
         <td><button id="q-ok" class="primary">${doc ? 'Actualizar' : 'Agregar ⏎'}</button>${doc ? ' <button id="q-cancel">Cancelar</button>' : ''}</td>
       </tr>
       <tr class="entrada-info"><td colspan="13">
+        <div class="fila2"><label class="conc">Concepto <input id="q-conc" value="${esc(base.concepto || '')}" placeholder="Detalle de la factura (opcional)"></label>
+          <span class="imputa">Imputa a: ${['IVA', 'IRE', 'IRP'].map(t => `<label class="chk inline"><input type="checkbox" id="q-imp${t}" ${C.imputa(base, cfg())[t.toLowerCase()] ? 'checked' : ''}> ${t}</label>`).join('')}</span></div>
         <label class="chk inline"><input type="checkbox" id="q-elec" ${base.electronico ? 'checked' : ''}> Electrónico/virtual (SIFEN – no va en RG 90)</label>
         <label class="chk inline">Moneda <select id="q-mon"><option value="">Gs.</option><option value="USD" ${base.moneda === 'USD' ? 'selected' : ''}>US$</option></select></label>
         <span id="q-tcbox" ${base.moneda === 'USD' ? '' : 'hidden'}>T.C. <input id="q-tc" class="n" size="7" value="${esc(base.tc || '')}"> <small class="muted">(montos en US$)</small></span>
@@ -386,11 +400,11 @@
           tot.g10 += s * d.g10; tot.iva10 += s * d.iva10; tot.g5 += s * d.g5; tot.iva5 += s * d.iva5; tot.ex += s * d.exenta; tot.exp += s * d.exportacion; tot.total += s * d.total;
           const malaCta = x.cuenta && !ctaValida(x.cuenta);
           return `<tr class="${st.editId === x.id ? 'sel' : ''} ${C.esNC(x) ? 'nc' : ''}" data-id="${x.id}">
-            <td>${fd(x.fecha)}</td><td>${TIPOS_DOC[x.tipoDoc] || x.tipoDoc}${x.electronico ? ' <span class="badge" title="Electrónico/virtual">e</span>' : ''}${C.esME(x) ? ` <span class="badge usd" title="US$ ${x.tc}">US$</span>` : ''}</td><td>${esc(x.timbrado)}</td><td>${esc(x.numero)}</td><td>${esc(x.ruc)}</td><td>${esc(x.razon)}</td>
+            <td>${fd(x.fecha)}</td><td>${TIPOS_DOC[x.tipoDoc] || x.tipoDoc}${x.electronico ? ' <span class="badge" title="Electrónico/virtual">e</span>' : ''}${C.esME(x) ? ` <span class="badge usd" title="US$ ${x.tc}">US$</span>` : ''}</td><td>${esc(x.timbrado)}</td><td>${esc(x.numero)}</td><td>${esc(x.ruc)}</td><td>${esc(x.razon)}${x.concepto ? `<small class="concepto">${esc(x.concepto)}</small>` : ''}${(() => { const im = C.imputa(x, cfg()); const t = ['IVA', 'IRE', 'IRP'].filter(k => im[k.toLowerCase()]); return `<small class="imp-tags">${t.length ? t.join(' · ') : 'no imputa'}</small>`; })()}</td>
             <td>${x.condicion === 'CREDITO' ? 'Crédito' : 'Contado'}</td><td class="n">${fmtZ(d.g10)}</td><td class="n">${fmtZ(d.g5)}</td><td class="n">${fmtZ(d.exenta)}</td>
             <td>${esCompra ? ({ GRAVADA: 'Gravadas', MIXTA: 'Mixta', EXENTA: 'Exentas' }[x.afectacion] || 'Gravadas') : `<span class="n">${fmtZ(d.exportacion)}</span>`}</td>
             <td class="${malaCta ? 'err' : ''}" title="${esc(nombreCta(x.cuenta))}">${esc(x.cuenta)}</td>
-            <td class="acc"><span class="n">${fmt(d.iva)}</span> <button class="mini" data-ed="${x.id}" title="Editar">✎</button><button class="mini danger" data-rm="${x.id}" title="Eliminar">✕</button></td></tr>`;
+            <td class="acc"><span class="n ${C.imputa(x, cfg()).iva ? '' : 'muted'}" title="${C.imputa(x, cfg()).iva ? '' : 'No imputa al IVA: no es crédito ni débito fiscal'}">${fmt(d.iva)}</span> <button class="mini" data-ed="${x.id}" title="Editar">✎</button><button class="mini danger" data-rm="${x.id}" title="Eliminar">✕</button></td></tr>`;
         }).join('');
         return `
         <section class="card"><h2>${esCompra ? 'Compras' : 'Ventas'} – carga rápida</h2>
@@ -407,8 +421,7 @@
             <textarea id="pegado-txt" rows="6"></textarea>
             <button id="pegado-ok" class="primary">Procesar filas pegadas</button>
           </div>
-          <p class="muted ayuda">Montos <b>con IVA incluido</b> tal como figuran en el comprobante; el IVA se calcula solo (10% → ÷11, 5% → ÷21). <kbd>Enter</kbd> guarda y deja lista la siguiente fila; <kbd>Esc</kbd> cancela la edición. Al cargar un RUC conocido se completan razón social${esCompra ? ', timbrado, cuenta y afectación' : ''}.</p>
-          <div class="scroll"><table class="grid docs"><thead><tr><th>Fecha</th><th>Tipo</th><th>Timbrado</th><th>Número</th><th>RUC</th><th>Razón social</th><th>Cond.</th><th>Gravada 10%</th><th>Gravada 5%</th><th>Exenta</th><th>${esCompra ? 'Afectación IVA' : 'Exportación'}</th><th>Cuenta</th><th>IVA</th></tr></thead>
+          <div class="scroll"><table class="grid docs"><thead><tr><th>Fecha</th><th>Tipo</th><th>Timbrado</th><th>Número</th><th>RUC</th><th>Razón social</th><th>Cond.</th><th title="Total con IVA incluido">Gravada 10%</th><th title="Total con IVA incluido">Gravada 5%</th><th>Exenta</th><th>${esCompra ? 'Afectación IVA' : 'Exportación'}</th><th>Cuenta</th><th>IVA</th></tr></thead>
           <tbody>${filaForm(st.editId ? lista().find(x => x.id === st.editId) : null)}${rows}</tbody>
           <tfoot><tr><td colspan="7">${docs.length} comprobantes – Total ${fmt(tot.total)}</td><td class="n">${fmt(tot.g10)}</td><td class="n">${fmt(tot.g5)}</td><td class="n">${fmt(tot.ex)}</td><td class="n">${esCompra ? '' : fmt(tot.exp)}</td><td></td><td class="n">${fmt(tot.iva10 + tot.iva5)}</td></tr></tfoot></table></div>
         </section>`;
@@ -447,6 +460,8 @@
               if (t.afectacion) $('#q-afec').value = t.afectacion;
               if (t.electronico !== undefined) $('#q-elec').checked = !!t.electronico;
             }
+            if (t.imputa) ['IVA', 'IRE', 'IRP'].forEach(x => { $('#q-imp' + x).checked = !!t.imputa[x.toLowerCase()]; });
+            if (t.concepto && !v('#q-conc')) $('#q-conc').placeholder = `Último: ${t.concepto}`;
           }
           sugerir();
           info();
@@ -472,8 +487,11 @@
             ruc: C.normalizarRuc(v('#q-ruc')), razon: v('#q-razon').trim(), condicion: v('#q-cond'),
             g10: C.r0(C.num(v('#q-g10'))), g5: C.r0(C.num(v('#q-g5'))), exenta: C.r0(C.num(v('#q-ex'))),
             exportacion: esCompra ? 0 : C.r0(C.num(v('#q-exp'))), cuenta: v('#q-cta').trim(),
-            electronico: $('#q-elec').checked
+            electronico: $('#q-elec').checked,
+            concepto: v('#q-conc').trim(),
+            imputaIVA: $('#q-impIVA').checked, imputaIRE: $('#q-impIRE').checked, imputaIRP: $('#q-impIRP').checked
           };
+          if (!doc.imputaIVA && !doc.imputaIRE && !doc.imputaIRP && !confirm('El comprobante no imputa a ningún impuesto (IVA, IRE ni IRP). ¿Guardarlo así?')) return;
           if (v('#q-mon') === 'USD') {
             doc.moneda = 'USD'; doc.tc = C.num(v('#q-tc'));
             if (!doc.tc) return toast('Ingrese el tipo de cambio del comprobante en US$', 'error');
@@ -493,6 +511,8 @@
             const t = d.terceros[doc.ruc] || (d.terceros[doc.ruc] = {});
             if (doc.razon) t.razon = doc.razon;
             if (esCompra) { t.timbrado = doc.timbrado; if (doc.cuenta) t.cuenta = doc.cuenta; t.afectacion = doc.afectacion; t.electronico = doc.electronico; }
+            t.imputa = { iva: doc.imputaIVA, ire: doc.imputaIRE, irp: doc.imputaIRP };
+            if (doc.concepto) t.concepto = doc.concepto;
           }
           S.save();
           const fueEdicion = !!st.editId; st.editId = null;
@@ -554,12 +574,12 @@
         };
         const libro = (desde, hasta, titulo) => {
           const docs = lista().filter(x => x.fecha >= desde && x.fecha <= hasta).sort((a, b) => (a.fecha + a.numero).localeCompare(b.fecha + b.numero));
-          const head = ['Fecha', 'Tipo', 'Timbrado', 'Número', 'RUC', 'Razón social', 'Condición', 'Gravada 10%', 'Base 10%', 'IVA 10%', 'Gravada 5%', 'Base 5%', 'IVA 5%', 'Exenta', esCompra ? 'Afectación' : 'Exportación', 'Total', 'Cuenta', 'Nombre cuenta'];
+          const head = ['Fecha', 'Tipo', 'Timbrado', 'Número', 'RUC', 'Razón social', 'Condición', 'Gravada 10%', 'Base 10%', 'IVA 10%', 'Gravada 5%', 'Base 5%', 'IVA 5%', 'Exenta', esCompra ? 'Afectación' : 'Exportación', 'Total', 'Cuenta', 'Nombre cuenta', 'Concepto', 'Imputa'];
           const t = new Array(head.length).fill(0);
           const filas = docs.map(x => {
             const q = C.desglose(x), s = C.signo(x);
             const r = [fd(x.fecha), TIPOS_DOC[x.tipoDoc], x.timbrado, x.numero, x.ruc, x.razon, x.condicion === 'CREDITO' ? 'Crédito' : 'Contado',
-              s * q.g10, s * q.base10, s * q.iva10, s * q.g5, s * q.base5, s * q.iva5, s * q.exenta, esCompra ? (x.afectacion || 'GRAVADA') : s * q.exportacion, s * q.total, x.cuenta || '', nombreCta(x.cuenta)];
+              s * q.g10, s * q.base10, s * q.iva10, s * q.g5, s * q.base5, s * q.iva5, s * q.exenta, esCompra ? (x.afectacion || 'GRAVADA') : s * q.exportacion, s * q.total, x.cuenta || '', nombreCta(x.cuenta), x.concepto || '', ['IVA', 'IRE', 'IRP'].filter(k => C.imputa(x, cfg())[k.toLowerCase()]).join(', ')];
             r.forEach((val, i) => { if (typeof val === 'number') t[i] += val; });
             return r;
           });

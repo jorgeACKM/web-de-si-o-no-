@@ -63,6 +63,8 @@
           <button id="i5-print" class="primary">Imprimir proforma</button> <button id="i5-exp">Exportar a Excel</button></div>
         <p class="muted">Sugeridos para ${anio}: ingresos gravados ${fmt(sg.c12)} (cas. 12) · egresos de la actividad ${fmt(sg.c15)} (cas. 15) · aporte patronal IPS ${fmt(sg.c19)} (cas. 19) · retenciones IRP ${fmt(sg.c41)} (cas. 41).
           Lo que escriba en una casilla reemplaza al valor sugerido; deje vacío para volver al sugerido.</p>
+        ${(datos().cuentas || []).some(c => c.irp) ? '' : '<div class="alerta">El plan de cuentas de este cliente no tiene cuentas con casilla del IRP: todas las compras irán a la casilla 15. Agréguelas en Cliente → Plan de cuentas → "Agregar cuentas de IRP".</div>'}
+        <p class="muted">Solo se toman los comprobantes marcados "Imputa a: IRP". Cada compra va a la casilla de su cuenta (columna "Cas. IRP" del plan de cuentas); las demás, a la casilla 15.</p>
         ${alertasHTML(r.alertas)}${ayudaBox}
         ${A.tablaFormulario(r.rubros, EDIT_515)}
         <div class="resultado ${r.k.c51 ? 'pagar' : 'favor'}">${r.k.c51 ? `IRP a ingresar (cas. 51): <b>Gs. ${fmt(r.k.c51)}</b>` : `Saldo a favor del contribuyente (cas. 44): <b>Gs. ${fmt(r.k.c44)}</b>`} · Renta neta imponible (cas. 45): <b>Gs. ${fmt(r.k.c45)}</b></div>

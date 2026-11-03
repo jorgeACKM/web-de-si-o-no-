@@ -38,7 +38,7 @@ t('515: compensación de pérdida anterior limitada al 20% y donaciones al 5%', 
 });
 
 t('515: sugerencias desde comprobantes, IPS patronal y retenciones IRP', () => {
-  const d = base();
+  const d = base(); d.config.rg90ImputaIRP = 'S'; // cliente que imputa al IRP por defecto
   d.ventas.push({ id: 1, fecha: '2026-02-01', tipoDoc: 'FACTURA', g10: 11000000 });
   d.compras.push({ id: 2, fecha: '2026-02-02', tipoDoc: 'FACTURA', g10: 1100000, afectacion: 'GRAVADA' });
   d.planillas = { '2026-03': { lineas: [{ nombre: 'A', salario: 2000000 }] } };
@@ -62,6 +62,35 @@ t('516: agrupación por incisos, renta real/presunta y liquidación al 8%', () =
   assert.strictEqual(k.c122, 7000000); assert.strictEqual(k.c128, 8000000);
   assert.strictEqual(k.c129, 92000000 + 7200000 + 3000000 + 8000000);
   assert.strictEqual(k.c130, Math.round(k.c129 * 0.08)); assert.strictEqual(k.c132, k.c130);
+});
+
+t('515: cada comprobante va a la casilla de su cuenta y solo cuentan los que imputan al IRP', () => {
+  const PD = require('../js/plan-default.js');
+  const d = base(); d.cuentas = PD.PLAN_DEFAULT.map(c => Object.assign({}, c));
+  d.ventas.push({ id: 1, fecha: '2026-01-10', tipoDoc: 'FACTURA', g10: 5500000, imputaIRP: true, cuenta: '4.3.1.01.01' });
+  d.ventas.push({ id: 2, fecha: '2026-01-11', tipoDoc: 'FACTURA', exenta: 900000, imputaIRP: true, cuenta: '4.3.1.01.04' });
+  d.ventas.push({ id: 3, fecha: '2026-01-12', tipoDoc: 'FACTURA', g10: 1100000 });                      // no imputa IRP
+  d.compras.push({ id: 4, fecha: '2026-02-01', tipoDoc: 'FACTURA', g10: 1100000, imputaIRP: true, imputaIVA: false, cuenta: '5.6.1.01.01' });
+  d.compras.push({ id: 5, fecha: '2026-02-02', tipoDoc: 'FACTURA', g10: 2200000, imputaIRP: true, cuenta: '5.6.1.01.02' });
+  d.compras.push({ id: 6, fecha: '2026-02-03', tipoDoc: 'FACTURA', g10: 550000, imputaIRP: true, cuenta: '5.2.1.02.06' });
+  const k = C.f515(d, 2026).k;
+  assert.strictEqual(k.c12, 5000000); assert.strictEqual(k.c10, 900000);
+  assert.strictEqual(k.c16, 1100000);   // sin IVA recuperable: el IVA forma parte del egreso
+  assert.strictEqual(k.c17, 2000000); assert.strictEqual(k.c15, 500000);
+});
+
+t('Comprobante que no imputa al IVA: fuera del Form. 120, IVA al gasto y RG 90 con sus marcas', () => {
+  const PD = require('../js/plan-default.js');
+  const d = base(); d.cuentas = PD.PLAN_DEFAULT.map(c => Object.assign({}, c)); d.config.liquidarIVA = false;
+  d.compras.push({ id: 1, fecha: '2026-03-01', tipoDoc: 'FACTURA', timbrado: '12345678', numero: '001-001-0000001', ruc: '80000519-8', razon: 'Super', g10: 1100000, imputaIVA: false, imputaIRE: false, imputaIRP: true, cuenta: '5.6.1.01.01' });
+  d.compras.push({ id: 2, fecha: '2026-03-02', tipoDoc: 'FACTURA', timbrado: '12345678', numero: '001-001-0000002', ruc: '80000519-8', razon: 'Super', g10: 2200000, cuenta: '5.1.1.01.02' });
+  assert.strictEqual(C.f120(d, '2026-03').k.c38, 200000);
+  const a = C.todosLosAsientos(d).find(x => x.id === 'C1');
+  assert.strictEqual(a.lineas.find(l => l.cuenta === '5.6.1.01.01').debe, 1100000);
+  assert.ok(!a.lineas.some(l => l.cuenta === '1.1.4.01.01'));
+  const L = C.rg90(d, '2026-03').csv.trim().split('\r\n');
+  assert.ok(L[0].includes(',N,N,N,S,N,'), L[0]);   // moneda N, IVA N, IRE N, IRP S, no imputa N
+  assert.ok(L[1].includes(',N,S,S,N,N,'), L[1]);
 });
 
 console.log(`\n${n} pruebas OK`);

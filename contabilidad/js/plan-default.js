@@ -192,6 +192,13 @@
     ['4.2.2.01.01', 'Otros ingresos gravados'],
     ['4.2.2.01.02', 'Dividendos y utilidades percibidas', null, 'NG'],
     ['4.2.2.01.03', 'Otros ingresos no gravados', null, 'NG'],
+    ['4.3', 'INGRESOS PERSONALES (IRP)'],
+    ['4.3.1', 'INGRESOS POR SERVICIOS PERSONALES', 'ER_OTROS'],
+    ['4.3.1.01', 'Ingresos por servicios personales (Form. 515)'],
+    ['4.3.1.01.01', 'Honorarios profesionales', null, 'NG', 12],
+    ['4.3.1.01.02', 'Sueldos, salarios y otras remuneraciones', null, 'NG', 12],
+    ['4.3.1.01.03', 'Ingresos como padre, tutor o curador', null, 'NG', 13],
+    ['4.3.1.01.04', 'Ingresos exonerados (aguinaldo, indemnizaciones, jubilaciones)', null, 'NG', 10],
     ['5', 'EGRESOS'],
     ['5.1', 'COSTO DE VENTAS', 'ER_COSTO'],
     ['5.1.1', 'Costo de ventas'],
@@ -242,14 +249,23 @@
     ['5.4.1.01.02', 'Multas, recargos e intereses fiscales', null, 'ND'],
     ['5.4.1.01.03', 'IVA no recuperable (costo)'],
     ['5.4.1.01.04', 'Donaciones'],
+    ['5.6', 'EGRESOS PERSONALES (IRP)'],
+    ['5.6.1', 'EGRESOS PERSONALES DEDUCIBLES EN EL IRP', 'ER_OTROSEG'],
+    ['5.6.1.01', 'Egresos personales (Form. 515)'],
+    ['5.6.1.01.01', 'Egresos personales y de familiares en el país', null, 'ND', 16],
+    ['5.6.1.01.02', 'Salud y educación en el exterior', null, 'ND', 17],
+    ['5.6.1.01.03', 'Adquisición de autovehículo (cada 3 años)', null, 'ND', 18],
+    ['5.6.1.01.04', 'Aporte a seguridad social privada', null, 'ND', 20],
+    ['5.6.1.01.05', 'Cuotas, aportes, diezmos y donaciones', null, 'ND', 21],
+    ['5.6.1.01.06', 'Inmueble para vivienda al contado (cada 5 años)', null, 'ND', 23],
     ['5.5', 'IMPUESTO A LA RENTA'],
     ['5.5.1', 'IMPUESTO A LA RENTA', 'ER_IRE'],
     ['5.5.1.01', 'Impuesto a la renta'],
     ['5.5.1.01.01', 'Impuesto a la Renta Empresarial (IRE)', null, 'ND']
   ];
 
-  const PLAN_DEFAULT = P.map(([codigo, nombre, rg49, flag]) => ({
-    codigo, nombre, rg49: rg49 || '', noDeducible: flag === 'ND', noGravado: flag === 'NG', me: flag === 'ME'
+  const PLAN_DEFAULT = P.map(([codigo, nombre, rg49, flag, irp]) => ({
+    codigo, nombre, rg49: rg49 || '', noDeducible: flag === 'ND', noGravado: flag === 'NG', me: flag === 'ME', irp: irp || ''
   }));
 
   // Cuentas que usan los asientos automáticos (se pueden cambiar por cliente).

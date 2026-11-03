@@ -10,16 +10,28 @@
   /* ======================= FORMULARIO 515 – IRP RSP ======================= */
   C.TIPOS_FAMILIAR = { a: 'Cónyuge', b: 'Hijos menores de edad', c: 'Hijos mayores de edad estudiando en educación superior', d: 'Hermanos menores de edad', e: 'Padres', f: 'Abuelos', g: 'Suegros', h: 'Otra persona con obligación legal de alimentos' };
   // Valores que se pueden tomar de la contabilidad del cliente (sugerencias).
+  // Casilla del Form. 515 asignada a cada cuenta del plan (columna "Casilla IRP")
+  C.casillasIRP = data => { const m = {}; (data.cuentas || []).forEach(c => { if (c.irp) m[String(c.codigo).trim()] = +c.irp; }); return m; };
   C.sugerencias515 = function (data, anio) {
-    let ingresos = 0, egresos = 0;
-    (data.ventas || []).filter(v => enAnio(v, anio)).forEach(v => { const d = C.desglose(v); ingresos += C.signo(v) * (d.base10 + d.base5 + d.exenta + d.exportacion); });
-    (data.compras || []).filter(c => enAnio(c, anio) && !c.noImputa).forEach(c => { const d = C.desglose(c); egresos += C.signo(c) * (d.base10 + d.base5 + d.exenta + (c.afectacion === 'EXENTA' ? d.iva : 0)); });
+    const cfg = C.config(data), mapa = C.casillasIRP(data);
+    const sg = { c10: 0, c12: 0, c13: 0, c15: 0, c16: 0, c17: 0, c18: 0, c20: 0, c21: 0, c23: 0 };
+    // solo los comprobantes marcados "imputa al IRP"
+    (data.ventas || []).filter(v => enAnio(v, anio) && C.imputa(v, cfg).irp).forEach(v => {
+      const d = C.desglose(v), cas = [10, 12, 13].includes(mapa[v.cuenta]) ? mapa[v.cuenta] : 12;
+      sg['c' + cas] += C.signo(v) * (d.base10 + d.base5 + d.exenta + d.exportacion);
+    });
+    (data.compras || []).filter(c => enAnio(c, anio) && !c.noImputa && C.imputa(c, cfg).irp).forEach(c => {
+      const d = C.desglose(c), cas = [15, 16, 17, 18, 20, 21, 23].includes(mapa[c.cuenta]) ? mapa[c.cuenta] : 15;
+      const conIVA = !C.imputa(c, cfg).iva || c.afectacion === 'EXENTA'; // si no recupera IVA, el IVA es parte del egreso
+      sg['c' + cas] += C.signo(c) * (d.base10 + d.base5 + d.exenta + (conIVA ? d.iva : 0));
+    });
+    Object.keys(sg).forEach(k => { sg[k] = Math.round(sg[k]); });
     let patronal = 0;
     Object.keys(data.planillas || {}).filter(p => p.slice(0, 4) === String(anio)).forEach(p => { const r = C.calcularPlanilla(data, p); if (r) patronal += r.t.ipsPatronal; });
     const retenciones = C.retencionesDelPeriodo ? C.retencionesDelPeriodo(data, `${anio}-01-01`, `${anio}-12-31`, 'IRP') : 0;
     const ant = ((data.irp515 || {})[anio - 1]);
     const prev = ant ? C.f515(data, anio - 1) : null;
-    return { c12: Math.round(ingresos), c15: Math.round(egresos), c19: Math.round(patronal), c41: retenciones, c40: prev ? prev.k.c44 : 0, c34: prev ? prev.k.c39 : 0 };
+    return Object.assign(sg, { c19: Math.round(patronal), c41: retenciones, c40: prev ? prev.k.c44 : 0, c34: prev ? prev.k.c39 : 0 });
   };
 
   C.f515 = function (data, anio) {
@@ -30,11 +42,13 @@
     const k = {};
     const alertas = [];
     // RUBRO 1 – Ingresos (sin IVA)
-    k.c10 = val('c10'); k.c11 = val('c11');
-    k.c12 = val('c12', e.usarSugeridos === false ? 0 : sg.c12); k.c13 = val('c13');
+    const usar = e.usarSugeridos !== false;
+    const sug = c => usar ? (sg[c] || 0) : 0;
+    k.c10 = val('c10', sug('c10')); k.c11 = val('c11');
+    k.c12 = val('c12', sug('c12')); k.c13 = val('c13', sug('c13'));
     k.c14 = k.c12 + k.c13;
     // RUBRO 2 – Egresos deducibles
-    ['c15', 'c16', 'c17', 'c18', 'c19', 'c20', 'c21', 'c23'].forEach(c => { k[c] = val(c, c === 'c15' && e.usarSugeridos !== false ? sg.c15 : c === 'c19' && e.usarSugeridos !== false ? sg.c19 : 0); });
+    ['c15', 'c16', 'c17', 'c18', 'c19', 'c20', 'c21', 'c23'].forEach(c => { k[c] = val(c, sug(c)); });
     const tope21 = Math.round(k.c14 * 0.05);
     if (k.c21 > tope21) { alertas.push(`Cuotas, aportes y donaciones (cas. 21) limitadas al 5% de la renta bruta gravada: ${tope21.toLocaleString('es-PY')}.`); k.c21 = tope21; }
     k.c22 = k.c15 + k.c16 + k.c17 + k.c18 + k.c19 + k.c20 + k.c21;

@@ -105,6 +105,16 @@
       totalME: f !== 1 ? C.r2(C.num(doc.g10) + C.num(doc.g5) + C.num(doc.exenta) + C.num(doc.exportacion)) : 0
     };
   };
+  // Impuestos a los que imputa el comprobante (IVA, IRE, IRP). Si el comprobante no lo indica, se usan los valores por defecto del cliente.
+  const siNo = (v, def) => v === undefined || v === null || v === '' ? def : (v === true || v === 'S');
+  C.imputa = function (doc, cfg) {
+    cfg = cfg || {};
+    return {
+      iva: siNo(doc.imputaIVA, siNo(cfg.rg90ImputaIVA, true)),
+      ire: siNo(doc.imputaIRE, siNo(cfg.rg90ImputaIRE, true)),
+      irp: siNo(doc.imputaIRP, siNo(cfg.rg90ImputaIRP, false))
+    };
+  };
   C.validarNumeroComprobante = n => /^\d{3}-\d{3}-\d{7}$/.test(String(n || ''));
   C.formatearNumeroComprobante = function (n) {
     const s = String(n || '').trim();
@@ -225,7 +235,7 @@
     const me = C.esME(c);
     const contra = c.condicion === 'CREDITO' ? (me ? cfg.ctaProveedoresME : cfg.ctaProveedores) : (me ? cfg.ctaCajaME : cfg.ctaCaja);
     const cta = c.cuenta || cfg.ctaCompras;
-    const sinCredito = c.afectacion === 'EXENTA'; // IVA no computable: va al costo/gasto
+    const sinCredito = c.afectacion === 'EXENTA' || !C.imputa(c, cfg).iva; // IVA no computable o no imputado al IVA: va al costo/gasto
     const L = [
       linea(cta, s * (d.base10 + d.base5 + d.exenta + d.exportacion + (sinCredito ? d.iva : 0)), 0),
       linea(cfg.ctaIvaCF10, sinCredito ? 0 : s * d.iva10, 0),
@@ -469,13 +479,13 @@
   C.ventasRubro1 = function (data, periodo, cfg) {
     const r = { c10: 0, c22: 0, c150: 0, c156: 0, c151: 0, c157: 0, c12: 0, c152: 0, c153: 0, c14: 0, c15: 0, c23: 0, c154: 0, c158: 0, c155: 0, c159: 0, c17: 0 };
     // Inc. h–k: ajustes de precios, devoluciones realizadas y descuentos obtenidos (NC recibidas de proveedores)
-    (data.compras || []).filter(c => c.fecha && c.fecha.slice(0, 7) === periodo && C.esNC(c)).forEach(c => {
+    (data.compras || []).filter(c => c.fecha && c.fecha.slice(0, 7) === periodo && C.esNC(c) && C.imputa(c, cfg).iva).forEach(c => {
       const d = C.desglose(c);
       r.c15 += d.base10; r.c23 += d.iva10;
       if (C.claseDoc(c, cfg) === 'AGRO') { r.c154 += d.base5; r.c158 += d.iva5; } else { r.c155 += d.base5; r.c159 += d.iva5; }
       r.c17 += d.exenta;
     });
-    (data.ventas || []).filter(v => v.fecha && v.fecha.slice(0, 7) === periodo && !C.esNC(v)).forEach(v => {
+    (data.ventas || []).filter(v => v.fecha && v.fecha.slice(0, 7) === periodo && !C.esNC(v) && C.imputa(v, cfg).iva).forEach(v => {
       const d = C.desglose(v), agro = C.claseDoc(v, cfg) === 'AGRO';
       r.c10 += d.base10; r.c22 += d.iva10;
       if (agro) { r.c150 += d.base5; r.c156 += d.iva5; } else { r.c151 += d.base5; r.c157 += d.iva5; }
@@ -502,7 +512,7 @@
     // RUBRO 6 – compras vinculadas a operaciones exoneradas
     k.c59 = 0; k.c65 = 0; k.c60 = 0; k.c66 = 0; k.c61 = 0; k.c62 = 0; k.c63 = 0;
 
-    (data.compras || []).filter(enMes).forEach(c => {
+    (data.compras || []).filter(c => enMes(c) && C.imputa(c, cfg).iva).forEach(c => {
       const d = C.desglose(c);
       if (C.esNC(c)) return; // ya consideradas en el Rubro 1 inc. h–k
       // Rubro 6 inc. c/d: compras exentas (incluidas autofacturas) vinculadas a operaciones exoneradas.
@@ -514,7 +524,7 @@
       if (exAExon) { if (c.exportacionVinculada) k.c61 += d.exenta; else k.c62 += d.exenta; }
     });
     // NC emitidas (ajustes por ventas ya declaradas): Rubro 3 inc. e; exentas en Rubro 6 inc. e
-    (data.ventas || []).filter(v => enMes(v) && C.esNC(v)).forEach(v => {
+    (data.ventas || []).filter(v => enMes(v) && C.esNC(v) && C.imputa(v, cfg).iva).forEach(v => {
       const d = C.desglose(v);
       k.c34 += d.base5; k.c37 += d.base10; k.c42 += d.iva; k.c63 += d.exenta;
     });
@@ -682,8 +692,6 @@
   C.rg90 = function (data, periodo, opts) {
     opts = opts || {};
     const cfg = C.config(data);
-    const flag = v => (v === false || v === 'N') ? 'N' : 'S';
-    const imp = { iva: flag(cfg.rg90ImputaIVA), ire: flag(cfg.rg90ImputaIRE), irp: cfg.rg90ImputaIRP === 'S' || cfg.rg90ImputaIRP === true ? 'S' : 'N' };
     const enPeriodo = x => x.fecha && (opts.anual ? x.fecha.slice(0, 4) === String(periodo).slice(0, 4) : x.fecha.slice(0, 7) === periodo);
     const lineas = [], errores = [], excluidos = [];
     const proc = (doc, esCompra) => {
@@ -704,8 +712,10 @@
       if (e.length) errores.push(`${ref}: ${e.join(', ')}`);
       const f = [esCompra ? 2 : 1, id.tipo, id.numero, rg90Txt(doc.razon, 250), tipoComp, C.parseFecha(doc.fecha).split('-').reverse().join('/'),
         rg90Txt(doc.timbrado, 8), rg90Txt(doc.numero, 20), d.g10, d.g5, exento, d.total, doc.condicion === 'CREDITO' ? 2 : 1,
-        doc.monedaExtranjera || C.esME(doc) ? 'S' : 'N', imp.iva, imp.ire, imp.irp];
-      if (esCompra) f.push(doc.noImputa ? 'S' : 'N');
+        doc.monedaExtranjera || C.esME(doc) ? 'S' : 'N'];
+      const im = C.imputa(doc, cfg), sn = b => b ? 'S' : 'N';
+      f.push(sn(im.iva), sn(im.ire), sn(im.irp));
+      if (esCompra) f.push(doc.noImputa || !(im.iva || im.ire || im.irp) ? 'S' : 'N');
       f.push(esNC ? rg90Txt(doc.asocNumero, 20) : '', esNC ? rg90Txt(doc.asocTimbrado, 8) : '');
       lineas.push({ campos: f, ref, ok: !e.length, esCompra });
     };

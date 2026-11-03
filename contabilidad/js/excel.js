@@ -44,7 +44,8 @@
     rg49: ['rubrorg49', 'rg49', 'rubro'],
     noDeducible: ['nodeducible', 'nodeducibleire', 'nd'],
     noGravado: ['nogravado', 'nogravadoire', 'ng'],
-    me: ['monedaextranjera', 'me']
+    me: ['monedaextranjera', 'me'],
+    irp: ['casillairp', 'irp']
   };
   X.importarPlan = function (wb) {
     const filas = X.filas(wb);
@@ -68,7 +69,7 @@
         imputable: m.map.imputable !== undefined ? siNo(g('imputable')) : undefined,
         tipo: /^(A|P|PN|I|E)$/.test(tipo) ? tipo : undefined,
         rg49: claves.has(rg) ? rg : '',
-        noDeducible: siNo(g('noDeducible')), noGravado: siNo(g('noGravado')), me: siNo(g('me'))
+        noDeducible: siNo(g('noDeducible')), noGravado: siNo(g('noGravado')), me: siNo(g('me')), irp: +g('irp') || ''
       });
     }
     if (!out.length) throw new Error('El archivo no contiene cuentas.');
@@ -76,8 +77,8 @@
   };
 
   /* ---------- Comprobantes ---------- */
-  X.COLS_VENTAS = ['Fecha', 'Tipo', 'Timbrado', 'Número', 'RUC', 'Razón social', 'Condición', 'Gravada 10% (IVA incl.)', 'Gravada 5% (IVA incl.)', 'Exenta', 'Exportación', 'Cuenta', 'Concepto', 'Electrónico (S/N)', 'Comprobante asociado', 'Timbrado asociado'];
-  X.COLS_COMPRAS = ['Fecha', 'Tipo', 'Timbrado', 'Número', 'RUC', 'Razón social', 'Condición', 'Gravada 10% (IVA incl.)', 'Gravada 5% (IVA incl.)', 'Exenta', 'Afectación', 'Cuenta', 'Concepto', 'Electrónico (S/N)', 'Comprobante asociado', 'Timbrado asociado'];
+  X.COLS_VENTAS = ['Fecha', 'Tipo', 'Timbrado', 'Número', 'RUC', 'Razón social', 'Condición', 'Gravada 10% (IVA incl.)', 'Gravada 5% (IVA incl.)', 'Exenta', 'Exportación', 'Cuenta', 'Concepto', 'Electrónico (S/N)', 'Comprobante asociado', 'Timbrado asociado', 'Imputa IVA (S/N)', 'Imputa IRE (S/N)', 'Imputa IRP (S/N)'];
+  X.COLS_COMPRAS = ['Fecha', 'Tipo', 'Timbrado', 'Número', 'RUC', 'Razón social', 'Condición', 'Gravada 10% (IVA incl.)', 'Gravada 5% (IVA incl.)', 'Exenta', 'Afectación', 'Cuenta', 'Concepto', 'Electrónico (S/N)', 'Comprobante asociado', 'Timbrado asociado', 'Imputa IVA (S/N)', 'Imputa IRE (S/N)', 'Imputa IRP (S/N)'];
   const ALIAS_DOC = {
     fecha: ['fecha', 'fechaemision', 'fechadeemision', 'fechaemisioncomprobante'], tipoDoc: ['tipo', 'tipocomprobante', 'tipodoc'], timbrado: ['timbrado'],
     numero: ['numero', 'nro', 'nrocomprobante', 'numerocomprobante', 'numerodecomprobante', 'nrodecomprobante', 'comprobante'],
@@ -87,7 +88,7 @@
     g5: ['gravada5', 'gravada5%', 'gravada5%ivaincl', 'gravadas5', 'monto5', '5%', 'montogravado5', 'montogravado5%', 'gravado5', 'gravado5%', 'totalgravado5'],
     exenta: ['exenta', 'exentas', 'nogravada', 'montoexento', 'exento', 'montonogravadooexento', 'nogravadooexento', 'montoexentonogravado'], exportacion: ['exportacion', 'exportaciones'],
     afectacion: ['afectacion', 'imputacioniva'], electronico: ['electronico', 'electronica', 'electronicovirtual'],
-    asocNumero: ['comprobanteasociado', 'nroasociado', 'asociado'], asocTimbrado: ['timbradoasociado'], clase: ['clase', 'claseoperacion'], cdc: ['cdc', 'codigodecontrol'], moneda: ['moneda'], tc: ['tipodecambio', 'tc', 'cotizacion'], cuenta: ['cuenta', 'codcuenta', 'cuentacontable'], concepto: ['concepto', 'descripcion', 'detalle']
+    asocNumero: ['comprobanteasociado', 'nroasociado', 'asociado'], asocTimbrado: ['timbradoasociado'], clase: ['clase', 'claseoperacion'], imputaIVA: ['imputaiva', 'iva'], imputaIRE: ['imputaire', 'ire'], imputaIRP: ['imputairp', 'irp'], cdc: ['cdc', 'codigodecontrol'], moneda: ['moneda'], tc: ['tipodecambio', 'tc', 'cotizacion'], cuenta: ['cuenta', 'codcuenta', 'cuentacontable'], concepto: ['concepto', 'descripcion', 'detalle']
   };
   X.tipoDoc = function (v) {
     const s = norm(v);
@@ -112,6 +113,9 @@
       afectacion: esCompra ? X.afectacion(get('afectacion')) : undefined,
       cuenta: String(get('cuenta') || '').trim(), concepto: String(get('concepto') || '').trim(),
       electronico: siNo(get('electronico')) || !!String(get('cdc') || '').trim() || undefined,
+      imputaIVA: get('imputaIVA') === '' ? undefined : siNo(get('imputaIVA')),
+      imputaIRE: get('imputaIRE') === '' ? undefined : siNo(get('imputaIRE')),
+      imputaIRP: get('imputaIRP') === '' ? undefined : siNo(get('imputaIRP')),
       cdc: String(get('cdc') || '').replace(/\D/g, '') || undefined,
       moneda: /usd|dolar|us\$/i.test(String(get('moneda'))) ? 'USD' : undefined, tc: C.num(get('tc')) || undefined,
       clase: /^agr/i.test(norm(get('clase'))) ? 'AGRO' : /^fle/i.test(norm(get('clase'))) ? 'FLETE' : undefined,
@@ -123,8 +127,8 @@
     let m = mapear(filas, ALIAS_DOC);
     if (!m || m.map.fecha === undefined) { // sin encabezado: orden de la plantilla
       const cols = esCompra
-        ? ['fecha', 'tipoDoc', 'timbrado', 'numero', 'ruc', 'razon', 'condicion', 'g10', 'g5', 'exenta', 'afectacion', 'cuenta', 'concepto', 'electronico', 'asocNumero', 'asocTimbrado']
-        : ['fecha', 'tipoDoc', 'timbrado', 'numero', 'ruc', 'razon', 'condicion', 'g10', 'g5', 'exenta', 'exportacion', 'cuenta', 'concepto', 'electronico', 'asocNumero', 'asocTimbrado'];
+        ? ['fecha', 'tipoDoc', 'timbrado', 'numero', 'ruc', 'razon', 'condicion', 'g10', 'g5', 'exenta', 'afectacion', 'cuenta', 'concepto', 'electronico', 'asocNumero', 'asocTimbrado', 'imputaIVA', 'imputaIRE', 'imputaIRP']
+        : ['fecha', 'tipoDoc', 'timbrado', 'numero', 'ruc', 'razon', 'condicion', 'g10', 'g5', 'exenta', 'exportacion', 'cuenta', 'concepto', 'electronico', 'asocNumero', 'asocTimbrado', 'imputaIVA', 'imputaIRE', 'imputaIRP'];
       m = { map: {}, desde: 0 }; cols.forEach((k, i) => { m.map[k] = i; });
     }
     const docs = [], errores = [];
