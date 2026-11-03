@@ -48,6 +48,21 @@ externo o a la nube una vez por semana.
   En el 515, las casillas en azul son valores sugeridos por la contabilidad; escriba encima para cambiarlos.
 - En el **Form. 120**, toque el número de una casilla para ver qué va ahí según el instructivo
   y de dónde lo toma el sistema. **Imprimir proforma** arma la hoja para transcribir en Marangatu.
+- **Descargas en PDF o Excel**: todo informe (balances, libros, formularios, mayores, etc.)
+  pregunta el formato al descargar (teclas **P** = PDF, **E** = Excel). Ambos salen con el
+  encabezado de la empresa, títulos, totales resaltados, número de página y, en los balances,
+  líneas de firma del representante legal y del contador. Las plantillas para importar siguen
+  bajando directo en Excel.
+- **Estados financieros RG 49** (Informes → Balances): "Ver estados RG 49" muestra los 6 anexos
+  del formato oficial (Balance General, Estado de Resultados, Flujo de efectivo, Variación del
+  patrimonio neto, Notas y Cuadro de revalúo) con la codificación de la DNIT; "Descargar" los
+  baja en PDF o Excel. Para completarlos:
+  - En Cliente → Clientes cargue el **RUC del contador** y, si corresponde, el **auditor**.
+  - En Plan de cuentas, la columna **Código RG 49** permite elegir el código oficial de cada
+    cuenta (en gris se ve el que toma automáticamente). También se importa desde Excel con la
+    columna "Codigo RG49".
+  - Las **notas** se escriben en Balances → "Notas a los estados financieros".
+  - El **coeficiente de revalúo** del año se carga en Bienes de uso.
 
 ## Primeros pasos con un cliente
 1. **Clientes**: razón social, RUC, mes de cierre, representante y contador.

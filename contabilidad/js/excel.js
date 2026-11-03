@@ -45,7 +45,8 @@
     noDeducible: ['nodeducible', 'nodeducibleire', 'nd'],
     noGravado: ['nogravado', 'nogravadoire', 'ng'],
     me: ['monedaextranjera', 'me'],
-    irp: ['casillairp', 'irp']
+    irp: ['casillairp', 'irp'],
+    rg49cod: ['codigorg49', 'codrg49', 'codigooficialrg49']
   };
   X.importarPlan = function (wb) {
     const filas = X.filas(wb);
@@ -69,7 +70,7 @@
         imputable: m.map.imputable !== undefined ? siNo(g('imputable')) : undefined,
         tipo: /^(A|P|PN|I|E)$/.test(tipo) ? tipo : undefined,
         rg49: claves.has(rg) ? rg : '',
-        noDeducible: siNo(g('noDeducible')), noGravado: siNo(g('noGravado')), me: siNo(g('me')), irp: +g('irp') || ''
+        noDeducible: siNo(g('noDeducible')), noGravado: siNo(g('noGravado')), me: siNo(g('me')), irp: +g('irp') || '', rg49cod: String(g('rg49cod') || '').trim()
       });
     }
     if (!out.length) throw new Error('El archivo no contiene cuentas.');
@@ -162,15 +163,29 @@
     }
     ws['!cols'] = (opts.anchos || []).map(w => ({ wch: w }));
     if (opts.merges) ws['!merges'] = opts.merges;
+    Object.defineProperty(ws, '_aoa', { value: aoa, enumerable: false });
+    Object.defineProperty(ws, '_opts', { value: opts, enumerable: false });
     return ws;
   };
-  X.descargar = function (hojas, nombre) {
+  // Archivos de datos (plantillas, importaciones): Excel simple, sin elegir formato
+  X.descargarDatos = function (hojas, nombre) {
     const wb = XLSX.utils.book_new();
     hojas.forEach(h => XLSX.utils.book_append_sheet(wb, h.ws, h.nombre.slice(0, 31)));
     XLSX.writeFile(wb, nombre);
   };
+  // Informes: se elige PDF o Excel con formato (ver reportes.js)
+  X.descargar = function (hojas, nombre, extra) {
+    const R = root.Reportes;
+    if (!R) return X.descargarDatos(hojas, nombre);
+    const cli = (root.App && root.App.cliente()) || {};
+    const docs = hojas.map(h => R.desdeMatriz(h.ws._aoa || [], h.ws._opts || {}, h.nombre, h.ws));
+    if (extra && extra.firmas) docs[0].bloques.push({ tipo: 'firmas' });
+    const doc = docs.length === 1 ? Object.assign(docs[0], { cliente: cli }) : { cliente: cli, titulo: docs[0].titulo, hojas: docs };
+    return R.descargarDocumento(doc, nombre);
+  };
+  const tag = (fila, t) => { Object.defineProperty(fila, '_tipo', { value: t, enumerable: false }); return fila; };
   X.encabezado = (cli, titulo, extra) => [
-    [cli.razon || ''], [`RUC: ${cli.ruc || ''}`], [titulo], ...(extra ? [[extra]] : []), []
+    tag([cli.razon || ''], 'razon'), tag([`RUC: ${cli.ruc || ''}`], 'ruc'), tag([titulo], 'titulo'), ...(extra ? [tag([extra], 'extra')] : []), tag([], 'vacia')
   ];
 
   /* ---------- ZIP (método "store", sin compresión) ---------- */

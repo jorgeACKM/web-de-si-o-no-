@@ -280,15 +280,17 @@
           El rubro RG 49 se hereda de la cuenta padre: alcanza con asignarlo en el nivel 3 o 4. La plantilla incluye una hoja con la lista de rubros.</p>
         </details>
         ${plan.avisos.length ? `<div class="alerta"><b>${plan.avisos.length} avisos:</b> ${plan.avisos.slice(0, 8).map(esc).join('; ')}${plan.avisos.length > 8 ? '…' : ''}</div>` : ''}
-        <div class="scroll"><table class="grid plan"><thead><tr><th>Código</th><th>Nombre</th><th>Nivel</th><th>Tipo</th><th>Imput.</th><th>Rubro RG 49 (asignado / efectivo)</th><th title="Gasto no deducible IRE">ND</th><th title="Ingreso no gravado IRE">NG</th><th title="Cuenta en moneda extranjera (diferencia de cambio automática)">M/E</th><th title="Casilla del Form. 515 (IRP) a la que va la cuenta">Cas. IRP</th><th></th></tr></thead><tbody>
+        <div class="scroll"><table class="grid plan"><thead><tr><th>Código</th><th>Nombre</th><th>Nivel</th><th>Tipo</th><th>Imput.</th><th>Rubro RG 49 (asignado / efectivo)</th><th title="Código oficial de los Anexos RG 49. Vacío: se toma el del plan estándar o el de la cuenta padre (en gris)">Código RG 49</th><th title="Gasto no deducible IRE">ND</th><th title="Ingreso no gravado IRE">NG</th><th title="Cuenta en moneda extranjera (diferencia de cambio automática)">M/E</th><th title="Casilla del Form. 515 (IRP) a la que va la cuenta">Cas. IRP</th><th></th></tr></thead><tbody>
         ${filas.map(c => `<tr class="niv${Math.min(c.nivel, 5)}"><td>${esc(c.codigo)}</td><td style="padding-left:${(c.nivel - 1) * 14 + 6}px">${esc(c.nombre)}</td><td class="c">${c.nivel}</td><td class="c">${c.tipo}</td><td class="c">${c.imputable ? '✔' : ''}</td>
           <td><select data-rg="${esc(c.codigo)}">${opts(c.rg49)}</select> <small class="muted">${esc(c.rubro)}</small></td>
+          <td><input class="mini-in" list="dl-rg49" data-rg49c="${esc(c.codigo)}" value="${esc(c.rg49cod || '')}" placeholder="${esc((C.codigoRG49 && C.codigoRG49(plan, c.codigo)) || '')}" size="9"></td>
           <td class="c">${c.tipo === 'E' ? `<input type="checkbox" data-nd="${esc(c.codigo)}" ${c.noDeducible ? 'checked' : ''}>` : ''}</td>
           <td class="c">${c.tipo === 'I' ? `<input type="checkbox" data-ng="${esc(c.codigo)}" ${c.noGravado ? 'checked' : ''}>` : ''}</td>
           <td class="c">${c.imputable && (c.tipo === 'A' || c.tipo === 'P') ? `<input type="checkbox" data-me="${esc(c.codigo)}" ${c.me === true || c.me === 'S' ? 'checked' : ''}>` : ''}</td>
           <td class="c">${c.imputable && (c.tipo === 'I' || c.tipo === 'E') ? `<select class="mini-sel" data-irp="${esc(c.codigo)}"><option value=""></option>${(c.tipo === 'I' ? [[10, 'Exonerado'], [12, 'Gravado'], [13, 'Tutor/curador']] : [[15, 'Actividad'], [16, 'Personales país'], [17, 'Salud/educ. exterior'], [18, 'Autovehículo'], [20, 'Seg. social privada'], [21, 'Donaciones'], [23, 'Inmueble vivienda']]).map(([n, t]) => `<option value="${n}" ${+c.irp === n ? 'selected' : ''}>${n} ${t}</option>`).join('')}</select>` : ''}</td>
           <td>${c.imputable ? `<button class="mini danger" data-delc="${esc(c.codigo)}">✕</button>` : ''}</td></tr>`).join('')}
         </tbody></table></div>
+        <datalist id="dl-rg49">${window.RG49 ? window.RG49.BG.concat(window.RG49.ER).map(([k, n]) => `<option value="${esc(k)}">${esc(n)}</option>`).join('') : ''}</datalist>
         <h3>Agregar cuenta</h3>
         <div class="form cols4"><label>Código <input id="n-cod"></label><label>Nombre <input id="n-nom"></label>
           <label>Rubro RG 49 <select id="n-rg">${opts('')}</select></label><label>&nbsp;<button id="n-add">Agregar</button></label></div>
@@ -302,6 +304,11 @@
       $$('[data-nd]').forEach(s => s.onchange = () => { cta(s.dataset.nd).noDeducible = s.checked; S.save(); refrescarPlan(); });
       $$('[data-ng]').forEach(s => s.onchange = () => { cta(s.dataset.ng).noGravado = s.checked; S.save(); refrescarPlan(); });
       $$('[data-me]').forEach(s => s.onchange = () => { cta(s.dataset.me).me = s.checked; S.save(); refrescarPlan(); });
+      $$('[data-rg49c]').forEach(s => s.onchange = () => {
+        const v = s.value.trim();
+        if (v && C.RG49_BG && !C.RG49_BG[v] && !C.RG49_ER[v]) { toast('El código ' + v + ' no existe en la estructura RG 49', 'error'); s.value = cta(s.dataset.rg49c).rg49cod || ''; return; }
+        cta(s.dataset.rg49c).rg49cod = v; S.save(); refrescarPlan();
+      });
       $$('[data-irp]').forEach(s => s.onchange = () => { cta(s.dataset.irp).irp = s.value ? +s.value : ''; S.save(); refrescarPlan(); });
       if ($('#p-irp')) $('#p-irp').onclick = () => {
         const nuevas = PD.PLAN_DEFAULT.filter(c => /^(4\.3|5\.6)(\.|$)/.test(c.codigo) && !cta(c.codigo));
@@ -326,10 +333,10 @@
         d.cuentas = PD.PLAN_DEFAULT.map(c => Object.assign({}, c)); S.save(); refrescarPlan(); render();
       };
       $('#p-plantilla').onclick = () => {
-        const aoa = [['Código', 'Nombre', 'Nivel', 'Imputable', 'Tipo', 'Rubro RG49', 'No deducible', 'No gravado', 'Moneda extranjera', 'Casilla IRP']]
-          .concat(plan.list.map(c => [c.codigo, c.nombre, c.nivel, c.imputable ? 'S' : 'N', c.tipo, c.rg49 || '', c.noDeducible ? 'S' : '', c.noGravado ? 'S' : '', c.me === true || c.me === 'S' ? 'S' : '', c.irp || '']));
+        const aoa = [['Código', 'Nombre', 'Nivel', 'Imputable', 'Tipo', 'Rubro RG49', 'No deducible', 'No gravado', 'Moneda extranjera', 'Casilla IRP', 'Codigo RG49']]
+          .concat(plan.list.map(c => [c.codigo, c.nombre, c.nivel, c.imputable ? 'S' : 'N', c.tipo, c.rg49 || '', c.noDeducible ? 'S' : '', c.noGravado ? 'S' : '', c.me === true || c.me === 'S' ? 'S' : '', c.irp || '', c.rg49cod || '']));
         const rub = [['Clave', 'Rubro', 'Grupo']].concat(PD.RUBROS_RG49.map(r => [r.key, r.nombre, r.grupo]));
-        X.descargar([{ nombre: 'Plan de cuentas', ws: X.hoja(aoa, { anchos: [16, 45, 6, 10, 6, 14, 12, 12] }) }, { nombre: 'Rubros RG49', ws: X.hoja(rub, { anchos: [14, 55, 8] }) }],
+        X.descargarDatos([{ nombre: 'Plan de cuentas', ws: X.hoja(aoa, { anchos: [16, 45, 6, 10, 6, 14, 12, 12] }) }, { nombre: 'Rubros RG49', ws: X.hoja(rub, { anchos: [14, 55, 8] }) }],
           `plan_de_cuentas_${slug(cliente().razon)}.xlsx`);
       };
       $('#p-imp').onclick = () => pedirArchivo('.xlsx,.xls,.csv', async f => {
@@ -569,7 +576,7 @@
           const ayuda = [['Columna', 'Valores'], ['Tipo', 'Factura, Nota de crédito, Autofactura, Boleta' + (esCompra ? ', Despacho (importación)' : '')], ['Condición', 'Contado / Crédito'],
             ['Gravada 10% / 5%', 'Total con IVA incluido'], ...(esCompra ? [['Afectación', 'Gravadas / Mixta / Exentas (destino del crédito fiscal)']] : [['Exportación', 'Monto de exportaciones']]),
             ['Cuenta', 'Código de cuenta imputable (opcional)']];
-          X.descargar([{ nombre: esCompra ? 'Compras' : 'Ventas', ws: X.hoja([esCompra ? X.COLS_COMPRAS : X.COLS_VENTAS].concat(ej), { anchos: [11, 14, 10, 17, 13, 30, 10, 14, 14, 12, 12, 14, 25] }) },
+          X.descargarDatos([{ nombre: esCompra ? 'Compras' : 'Ventas', ws: X.hoja([esCompra ? X.COLS_COMPRAS : X.COLS_VENTAS].concat(ej), { anchos: [11, 14, 10, 17, 13, 30, 10, 14, 14, 12, 12, 14, 25] }) },
             { nombre: 'Ayuda', ws: X.hoja(ayuda, { anchos: [20, 70] }) }], `plantilla_${tipo}.xlsx`);
         };
         const libro = (desde, hasta, titulo) => {
@@ -822,7 +829,7 @@
       };
       ['#b-c1', '#b-c2'].forEach(id => $(id).onchange = () => { leer(); st.tc1 = tcDe(st.corte1); st.tc2 = tcDe(st.corte2); render(); });
       $('#b-niv').onchange = () => { leer(); render(); };
-      $('#b-notas').onchange = e => { const d = datos(); d.config = Object.assign({}, d.config, { notasTexto: e.target.value }); S.save(); };
+      if ($('#b-notas')) $('#b-notas').onchange = e => { const d = datos(); d.config = Object.assign({}, d.config, { notasTexto: e.target.value }); S.save(); };
       const bal = () => { leer(); return C.balanceComparativo(datos(), plan, [{ hasta: st.corte1, tc: st.tc1 }, { hasta: st.corte2, tc: st.tc2 }], st.nivel); };
       const rg = () => { leer(); const a = C.todosLosAsientos(datos()); return [C.rubrosAl(datos(), plan, st.corte2, a), C.rubrosAl(datos(), plan, st.corte1, a)]; };
       const varPct = (a, b) => b ? (a - b) / Math.abs(b) : null;
@@ -850,7 +857,7 @@
           `Cortes: ${fd(st.corte1)} y ${fd(st.corte2)} · T.C.: ${fmt2(st.tc1) || 's/d'} y ${fmt2(st.tc2) || 's/d'} Gs/US$`)
           .concat([head], filas, [[]], tot);
         X.descargar([{ nombre: `Balance nivel ${st.nivel}`, ws: X.hoja(aoa, { anchos: [14, 48, 6, 17, 17, 16, 10, 14, 14, 14], usdCols: [7, 8, 9], pctCols: [6] }) }],
-          `balance_nivel${st.nivel}_${st.corte1}_${st.corte2}_${slug(cliente().razon)}.xlsx`);
+          `balance_nivel${st.nivel}_${st.corte1}_${st.corte2}_${slug(cliente().razon)}.xlsx`, { firmas: true });
       };
 
       $('#b-ver49').onclick = () => {
@@ -1117,7 +1124,7 @@
       $('#r-xls').onclick = () => {
         const r = C.rg90(d, st.periodo, { anual: !!st.rg90Anual });
         const v = r.lineas.filter(l => !l.esCompra).map(l => l.campos), c = r.lineas.filter(l => l.esCompra).map(l => l.campos);
-        X.descargar([{ nombre: 'Ventas RG90', ws: X.hoja([RG90_COLS.filter((h, i) => i !== 17)].concat(v)) },
+        X.descargarDatos([{ nombre: 'Ventas RG90', ws: X.hoja([RG90_COLS.filter((h, i) => i !== 17)].concat(v)) },
           { nombre: 'Compras RG90', ws: X.hoja([RG90_COLS].concat(c)) },
           { nombre: 'Observaciones', ws: X.hoja([['Observación']].concat(r.errores.map(e => [e]), r.excluidos.map(e => [e]))) }],
           `RG90_${st.periodo}_${slug(cliente().razon)}.xlsx`);

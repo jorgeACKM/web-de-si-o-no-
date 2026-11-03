@@ -165,3 +165,22 @@ tr.entrada-info .imputa { font-size: 12px; color: var(--text); font-weight: 600;
 table.docs small.concepto { display: block; color: var(--muted); font-size: 11px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
 table.docs small.imp-tags { display: block; font-size: 10px; color: var(--primary); letter-spacing: .03em; }
 select.mini-sel { font-size: 11px; padding: 1px; max-width: 150px; }
+
+/* ---- Selector de formato y vista previa de documentos ---- */
+.formato-fondo { position: fixed; inset: 0; background: rgba(20, 40, 35, .45); z-index: 40; display: flex; align-items: center; justify-content: center; }
+.formato { width: min(420px, 92vw); text-align: center; }
+.formato h3 { margin-top: 0; } .formato p { margin: 4px 0 14px; }
+.formato-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.formato-btns button { display: flex; flex-direction: column; gap: 2px; padding: 14px; font-size: 15px; }
+.formato-btns button small { font-size: 11px; opacity: .8; }
+.formato .cerrar { margin-top: 4px; }
+section.doc-prev { border-top: 2px solid var(--primary); padding-top: 8px; margin-top: 18px; }
+section.doc-prev h3 { color: var(--primary-2); }
+table.docprev { max-width: 1100px; } table.docprev td { padding: 3px 6px; }
+table.docprev tr.e-titulo td { background: var(--primary-2); color: #fff; font-weight: 700; }
+table.docprev tr.e-seccion td { background: var(--claro, #e8f1ee); font-weight: 700; color: var(--primary-2); }
+table.docprev tr.e-subtotal td { font-weight: 700; border-top: 1px solid #c9d2db; }
+table.docprev tr.e-total td { font-weight: 700; background: #d9eae4; }
+table.docprev tr.e-gran td { font-weight: 800; background: var(--primary); color: #fff; }
+table.docprev tr.e-nota td { font-style: italic; color: var(--muted); }
+.notas-rg49 { display: grid; gap: 8px; } .notas-rg49 label { display: flex; flex-direction: column; gap: 3px; font-size: 13px; }

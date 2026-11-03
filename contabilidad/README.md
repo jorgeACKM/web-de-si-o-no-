@@ -31,6 +31,8 @@ Los datos quedan guardados en el navegador; use **Clientes → Descargar respald
 | **Sueldos e IPS** | Empleados y planilla mensual: IPS obrero 9% y patronal 16,5%, provisión de aguinaldo 1/12, descuentos y pago de aguinaldo; asiento automático y planilla en Excel. |
 | **Asientos recurrentes** | Alquileres, cuotas, honorarios: se generan solos cada mes. |
 | **IRP e IDU** | Preliquidación anual del IRP por tramos (8% / 9% / 10%, configurables). Distribución de dividendos con IDU 8% (residentes) y 15% (no residentes), asiento y liquidación mensual. |
+| **RG 49 formato oficial** | Los **6 anexos** del formato DNIT (Balance General, Estado de Resultados, Flujo de efectivo método directo, Variación del PN, Notas con composición de saldos y Cuadro de revalúo), con la codificación oficial, comparativo X1 / X1-1, identificación del contribuyente, contador y auditor, y firmas. Cada cuenta toma su código del plan estándar o del que se asigne en el plan (columna "Código RG 49"). |
+| **Informes en PDF y Excel** | Todas las descargas de informes permiten elegir **PDF** (A4, encabezado de la empresa, paginado) o **Excel con formato** (colores, totales, montos con separador, listo para imprimir). |
 | **Estados RG 49 completos** | Además del balance y resultados: **flujo de efectivo** (método indirecto, controlado contra la variación de disponibilidades), **evolución del patrimonio neto** y **notas** (información general, bases, criterios, bienes de uso, posición en moneda extranjera, texto libre). |
 | **Vencimientos** | Calendario anual por terminación del RUC (día 7 al 25, corrido al día hábil): IVA, RG 90, retenciones/IDU, IPS, DJ IRE y anticipos; vista de los próximos 30 días de **todos los clientes**. |
 | **Cierre de períodos** | Bloquea altas, cambios y bajas con fecha dentro de los meses ya declarados. |
@@ -104,4 +106,6 @@ node server/server.js                                         # http://localhost
 - `js/core-ext.js`: módulos de tesorería, personal, impuestos, estados RG 49, vencimientos, importaciones.
 - `js/core-cierre.js` y `js/app-cierre.js`: inventario, liquidación de IVA, cierre de ejercicio, libros rubricados y regímenes del IRE.
 - `js/app-ext.js`: pantallas de esos módulos. `server/server.js`: servidor multiusuario sin dependencias.
+- `js/rg49-estructura.js`, `js/rg49.js`, `js/app-rg49.js`: estructura oficial, cálculo y pantallas de los anexos RG 49.
+- `js/reportes.js`: motor de informes (PDF con jsPDF + autotable, Excel con ExcelJS, incluidos en `vendor/`).
 - Pruebas: `cd contabilidad && npm test`

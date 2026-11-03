@@ -172,7 +172,7 @@
       $('#cj-todo').onclick = () => { if (!bloqueado(ejercicioDe(anio).hasta)) setFlags({ prevision: true, vacaciones: true, ire: true, reservaLegal: true }); };
       $('#cj-nada').onclick = () => { if (!bloqueado(ejercicioDe(anio).hasta)) setFlags({ prevision: false, vacaciones: false, ire: false, reservaLegal: false }); };
       $('#cj-iva').onchange = e => { setCfg({ liquidarIVA: e.target.checked }); render(); };
-      $('#si-plant').onclick = () => X.descargar([{ nombre: 'Saldos iniciales', ws: X.hoja([['Código', 'Cuenta', 'Debe', 'Haber']].concat(A.plan.list.filter(c => c.imputable && ['A', 'P', 'PN'].includes(c.tipo)).map(c => [c.codigo, c.nombre, '', ''])), { anchos: [14, 45, 16, 16] }) }], 'plantilla_saldos_iniciales.xlsx');
+      $('#si-plant').onclick = () => X.descargarDatos([{ nombre: 'Saldos iniciales', ws: X.hoja([['Código', 'Cuenta', 'Debe', 'Haber']].concat(A.plan.list.filter(c => c.imputable && ['A', 'P', 'PN'].includes(c.tipo)).map(c => [c.codigo, c.nombre, '', ''])), { anchos: [14, 45, 16, 16] }) }], 'plantilla_saldos_iniciales.xlsx');
       $('#si-imp').onclick = () => pedirArchivo('.xlsx,.xls,.csv', async f => {
         const filas = X.filas(await X.leerArchivo(f));
         const h = filas.findIndex(r => r.some(x => /c[oó]digo/i.test(String(x))));
