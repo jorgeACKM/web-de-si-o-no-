@@ -58,6 +58,7 @@
       C.vencimientos(cli.ruc, +hoy().slice(0, 4), cli.cierreMes, { regimen: e.cfg.regimenIRE, mesesAnticiposIRE: e.cfg.mesesAnticiposIRE, mesesVtoIRE: e.cfg.mesesVtoIRE }).items
         .filter(x => x.fecha >= hoy() && x.fecha <= lim).forEach(x => out.push(['aviso', `Vence el ${fd(x.fecha)}: ${x.obligacion} (${x.periodo}).`, 'vencimientos']));
     } catch (err) { /* */ }
+    if (A.alertasExtra) { try { A.alertasExtra(e, periodo).forEach(x => out.push(x)); } catch (err) { /* */ } }
     return out;
   }
 

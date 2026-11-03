@@ -5,7 +5,7 @@
   "description": "Sistema contable para clientes (Paraguay): IVA, IRE, IRP, IDU, RG 49, RG 90",
   "scripts": {
     "start": "node server/server.js",
-    "test": "node tests/core.test.js && node -r ./js/core-cierre.js tests/core.test.js && node tests/ext.test.js && node -r ./js/core-cierre.js tests/ext.test.js && node tests/cierre.test.js && node tests/irp.test.js && node tests/rg49.test.js"
+    "test": "node tests/core.test.js && node -r ./js/core-cierre.js tests/core.test.js && node tests/ext.test.js && node -r ./js/core-cierre.js tests/ext.test.js && node tests/cierre.test.js && node tests/irp.test.js && node tests/rg49.test.js && node tests/plus.test.js"
   },
   "engines": {
     "node": ">=18"

@@ -193,3 +193,17 @@ table.docprev tr.e-nota td { font-style: italic; color: var(--muted); }
 .form-prof table.f120.prof thead th { background: #f2f2f2; color: #111; text-align: center; white-space: normal; }
 .form-prof table.f120.prof td.vac { background: #e4e4e4; }
 .form-prof table.f120.prof td.cas { text-align: center; font-weight: 700; font-size: 12px; color: #111; background: #f2f2f2; width: auto; padding: 3px 2px; }
+/* Calendario de vencimientos */
+table.calendario { width: 100%; table-layout: fixed; border-collapse: collapse; margin-bottom: 14px; }
+table.calendario th { background: var(--head, #eef2f5); padding: 6px; font-size: 12px; }
+table.calendario td { border: 1px solid var(--line, #dde3e8); vertical-align: top; height: 92px; padding: 4px; font-size: 11px; overflow: hidden; }
+table.calendario td.finde { background: #f7f8f9; } table.calendario td.feriado { background: #fdf3e6; } table.calendario td.vacio { background: #fbfbfb; }
+table.calendario td.hoy { outline: 2px solid var(--primary, #1f6f5c); outline-offset: -2px; }
+table.calendario .dia { font-weight: 700; margin-bottom: 3px; } table.calendario .dia small { font-weight: 400; color: #a0671c; }
+table.calendario .vto { background: #e8f1ee; border-radius: 3px; padding: 1px 4px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Tareas por cliente, sugerencias y aviso previo */
+.tarea { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 10px; margin-right: 2px; }
+.tarea.ok { background: #d8f0e4; color: #1d6b47; } .tarea.pend { background: #f3f3f3; color: #8a8f96; }
+input.sugerido { background: #f3f8ff; font-style: italic; }
+.aviso-previo { max-width: 640px; } .aviso-previo ul.alertas { max-height: 50vh; overflow: auto; }
+body.arrastrando::after { content: 'Suelte los XML para cargarlos'; position: fixed; inset: 12px; border: 3px dashed var(--primary, #1f6f5c); border-radius: 12px; background: rgba(232, 241, 238, .85); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; color: var(--primary, #1f6f5c); z-index: 9999; pointer-events: none; }

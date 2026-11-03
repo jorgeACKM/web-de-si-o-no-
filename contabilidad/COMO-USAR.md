@@ -69,6 +69,23 @@ externo o a la nube una vez por semana.
   - Las **notas** se escriben en Balances → "Notas a los estados financieros".
   - El **coeficiente de revalúo** del año se carga en Bienes de uso.
 
+## Controles y obligaciones adicionales
+- **Impuestos → Antes de presentar → Controles del mes**: cuadre de IVA, RG 90, RUC y timbrados.
+  Para validar RUC, importe la lista de la DNIT (archivos ruc0 a ruc9, en ZIP o TXT); después, al
+  escribir un RUC en la carga rápida se completa la razón social y avisa si está cancelado.
+  En la tabla de timbrados cargue el inicio y fin de vigencia para detectar facturas fuera de plazo.
+- **Cruce con terceros**: descargue de Marangatu los comprobantes que otros informaron a su nombre
+  e impórtelos; los faltantes se pueden cargar con un clic.
+- **Retenciones → Archivo para Tesaka**: retenciones emitidas del mes en JSON (cada una debe tener
+  su factura de compra cargada).
+- **Form. 500**: abajo aparecen los anticipos del ejercicio; márquelos cuando se paguen.
+- **Auditoría y partes relacionadas**: umbral de ingresos (configurable), paquete para el auditor y
+  marca de partes relacionadas.
+- **Sueldos**: N° patronal, datos de cada empleado, planilla IPS, planillas del Ministerio de Trabajo,
+  aguinaldo y recibos.
+- **Estudio**: calendario de todos los clientes, honorarios y cobros, tareas del mes por cliente.
+- Puede arrastrar archivos XML de facturas electrónicas a cualquier pantalla para cargarlos.
+
 ## Primeros pasos con un cliente
 1. **Clientes**: razón social, RUC, mes de cierre, representante y contador.
 2. **Plan de cuentas**: use el estándar o importe el suyo desde Excel.

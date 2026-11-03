@@ -312,6 +312,7 @@
     irpTramos: '50000000:8;150000000:9;:10',
     // Cuentas corrientes y vencimientos
     plazoDias: 30, mesesAnticiposIRE: '6,8,10,12', mesesVtoIRE: 4,
+    umbralAuditoria: 6000000000, nroPatronalIPS: '', nroPatronalMTESS: '', vtoBeneficiarios: '',
     // Bloqueo de períodos declarados (fecha AAAA-MM-DD; vacío = sin bloqueo)
     cerradoHasta: '',
     // Inventario: 'PERIODICO' (recuentos) o 'PERMANENTE' (kardex con costo promedio)

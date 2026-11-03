@@ -414,6 +414,57 @@
     catch (e) { console.error(e); if (root.App) root.App.toast('No se pudo generar el informe: ' + e.message, 'error'); }
   };
   R.aExcel = aExcel; R.aPDF = aPDF;
+  R.bajar = bajar;
+
+  /* ---------- Recibos de salario / aguinaldo: original y duplicado en una hoja A4 ---------- */
+  R.recibosPDF = function (cli, recibos, opts, archivo) {
+    const J = root.jspdf && root.jspdf.jsPDF;
+    if (!J) throw new Error('No se cargó la librería de PDF');
+    const pdf = new J({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+    const W = pdf.internal.pageSize.getWidth(), H = pdf.internal.pageSize.getHeight(), M = 36;
+    const gs = v => (Math.round(v) || 0).toLocaleString('es-PY');
+    recibos.forEach((r, i) => {
+      if (i) pdf.addPage();
+      ['ORIGINAL', 'DUPLICADO'].forEach((copia, k) => {
+        let y = k ? H / 2 + 14 : 30;
+        if (k) { pdf.setDrawColor(160); pdf.setLineDashPattern([3, 3], 0); pdf.line(M, H / 2, W - M, H / 2); pdf.setLineDashPattern([], 0); }
+        pdf.setDrawColor(0); pdf.setLineWidth(0.8); pdf.rect(M, y, W - 2 * M, H / 2 - 52);
+        pdf.setTextColor(0); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(12);
+        pdf.text(pdfTxt(opts.titulo || 'RECIBO DE SALARIO'), W / 2, y + 20, { align: 'center' });
+        pdf.setFontSize(7.5); pdf.setFont('helvetica', 'normal'); pdf.text(copia, W - M - 8, y + 14, { align: 'right' });
+        pdf.setFontSize(8.5);
+        const linea = (k1, v1, k2, v2, yy) => {
+          const par = (k, val, x) => { pdf.setFont('helvetica', 'bold'); pdf.text(pdfTxt(k), x, yy); const w = pdf.getTextWidth(pdfTxt(k)) + 5; pdf.setFont('helvetica', 'normal'); pdf.text(pdfTxt(val), x + w, yy); };
+          par(k1, v1, M + 10); if (k2) par(k2, v2, W / 2 + 10);
+        };
+        linea('Empleador:', cli.razon || '', 'RUC:', cli.ruc || '', y + 38);
+        linea('N° patronal IPS:', opts.nroPatronal || '-', 'Período:', r.periodoTxt || r.periodo || '', y + 51);
+        linea('Trabajador:', r.nombre || '', 'C.I.:', r.ci || '', y + 64);
+        if (r.cargo) linea('Cargo:', r.cargo, '', '', y + 77);
+        const filas = [];
+        const n = Math.max(r.haberes.length, r.descuentos.length);
+        for (let j = 0; j < n; j++) { const h = r.haberes[j] || ['', ''], d = r.descuentos[j] || ['', '']; filas.push([pdfTxt(h[0]), h[0] ? gs(h[1]) : '', pdfTxt(d[0]), d[0] ? gs(d[1]) : '']); }
+        const th = r.haberes.reduce((a, x) => a + x[1], 0), td = r.descuentos.reduce((a, x) => a + x[1], 0);
+        filas.push(['Total haberes', gs(th), 'Total descuentos', gs(td)]);
+        pdf.autoTable({
+          startY: y + 86, head: [['Haberes', 'Importe', 'Descuentos', 'Importe']], body: filas, theme: 'grid', margin: { left: M + 10, right: M + 10 },
+          styles: { fontSize: 8, cellPadding: 3, lineColor: [120, 120, 120], lineWidth: 0.4, textColor: 20 },
+          headStyles: { fillColor: [230, 230, 230], textColor: 20, fontStyle: 'bold' },
+          columnStyles: { 1: { halign: 'right', cellWidth: 90 }, 3: { halign: 'right', cellWidth: 90 } },
+          didParseCell: d => { if (d.section === 'body' && d.row.index === filas.length - 1) d.cell.styles.fontStyle = 'bold'; }
+        });
+        let yy = pdf.lastAutoTable.finalY + 16;
+        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(10); pdf.text(`NETO A COBRAR: Gs. ${gs(r.neto)}`, M + 10, yy);
+        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8);
+        const letras = root.Conta && root.Conta.numeroEnLetras ? root.Conta.numeroEnLetras(r.neto) : '';
+        pdf.text(pdf.splitTextToSize(pdfTxt(`Recibí conforme la suma de guaraníes ${letras}.`), W - 2 * M - 20), M + 10, yy + 14);
+        const yf = y + H / 2 - 74;
+        pdf.line(W - M - 190, yf, W - M - 20, yf); pdf.text('Firma del trabajador', W - M - 105, yf + 10, { align: 'center' });
+        pdf.line(M + 20, yf, M + 190, yf); pdf.text('Firma del empleador', M + 105, yf + 10, { align: 'center' });
+      });
+    });
+    bajar(pdf.output('blob'), archivo.replace(/\.pdf$/i, '') + '.pdf');
+  };
 
   /* ---------- Adaptador de las exportaciones existentes (matrices de valores) ---------- */
   const TOTAL_RE = /^(TOTAL|TOTALES|SALDO|SUBTOTAL|RESULTADO|UTILIDAD|RENTA NETA|IMPUESTO|BASE IMPONIBLE|VARIACI|FLUJO NETO|DISPONIBILIDADES AL|EFECTIVO NETO|GANANCIAS)/i;

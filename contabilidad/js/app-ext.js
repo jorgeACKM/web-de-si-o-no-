@@ -35,6 +35,7 @@
     });
     return { ok, dup, cerr };
   }
+  A.incorporarDocs = incorporar;
   const resumen = (r, extra) => `${r.ok} importados${r.dup ? `, ${r.dup} duplicados omitidos` : ''}${r.cerr ? `, ${r.cerr} en períodos cerrados` : ''}${extra ? '. ' + extra : ''}`;
   async function leerTextos(file) {
     const buf = new Uint8Array(await file.arrayBuffer());
