@@ -53,6 +53,11 @@ externo o a la nube una vez por semana.
   encabezado de la empresa, títulos, totales resaltados, número de página y, en los balances,
   líneas de firma del representante legal y del contador. Las plantillas para importar siguen
   bajando directo en Excel.
+- **Formularios** (120, 500, 501 Simple, Resimple, 515 y 516): en pantalla y al descargar
+  (PDF o Excel) salen con el formato de la proforma: recuadro con el número de formulario,
+  rubros, incisos y cada importe en su casilla.
+- **Moneda**: los estados RG 49 se descargan en guaraníes **o** en dólares (selector "Moneda").
+  El balance comparativo por niveles muestra guaraníes y dólares juntos, sin variaciones.
 - **Estados financieros RG 49** (Informes → Balances): "Ver estados RG 49" muestra los 6 anexos
   del formato oficial (Balance General, Estado de Resultados, Flujo de efectivo, Variación del
   patrimonio neto, Notas y Cuadro de revalúo) con la codificación de la DNIT; "Descargar" los

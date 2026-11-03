@@ -178,7 +178,7 @@
     const R = root.Reportes;
     if (!R) return X.descargarDatos(hojas, nombre);
     const cli = (root.App && root.App.cliente()) || {};
-    const docs = hojas.map(h => R.desdeMatriz(h.ws._aoa || [], h.ws._opts || {}, h.nombre, h.ws));
+    const docs = hojas.map(h => h.doc ? Object.assign({ nombreHoja: h.nombre }, h.doc) : R.desdeMatriz(h.ws._aoa || [], h.ws._opts || {}, h.nombre, h.ws));
     if (extra && extra.firmas) docs[0].bloques.push({ tipo: 'firmas' });
     const doc = docs.length === 1 ? Object.assign(docs[0], { cliente: cli }) : { cliente: cli, titulo: docs[0].titulo, hojas: docs };
     return R.descargarDocumento(doc, nombre);

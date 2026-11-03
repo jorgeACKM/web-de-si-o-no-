@@ -17,7 +17,7 @@
 
   const st = {
     tab: 'clientes', periodo: hoy().slice(0, 7), editId: null, verAuto: false,
-    corte1: `${+hoy().slice(0, 4) - 1}-12-31`, corte2: C.finDeMes(hoy().slice(0, 7)), nivel: 4, usdRG49: true,
+    corte1: `${+hoy().slice(0, 4) - 1}-12-31`, corte2: C.finDeMes(hoy().slice(0, 7)), nivel: 4,
     anio: +hoy().slice(0, 4) - 1, anioTC: +hoy().slice(0, 4), filtroPlan: '', asientoEdit: null
   };
   let plan = null;
@@ -809,7 +809,6 @@
         <div class="acciones">
           <button id="b-ver4" class="primary">Ver balance por nivel</button> <button id="b-exp4">Exportar balance nivel ${st.nivel} (Gs. y US$)</button>
           <button id="b-ver49" class="primary">Ver estados RG 49 (balance, resultados, flujo, patrimonio)</button> <button id="b-exp49">Exportar estados RG 49 + notas (Excel)</button>
-          <label class="chk"><input type="checkbox" id="b-usd" ${st.usdRG49 ? 'checked' : ''}> RG 49 con columnas en US$</label>
         </div>
         <details><summary>Texto de notas adicionales / hechos posteriores (se incluye en la hoja "Notas")</summary>
           <textarea id="b-notas" rows="4">${esc(cfg().notasTexto || '')}</textarea></details>
@@ -817,23 +816,20 @@
     },
     bind() {
       const leer = () => {
-        st.corte1 = $('#b-c1').value; st.corte2 = $('#b-c2').value; st.nivel = +$('#b-niv').value; st.usdRG49 = $('#b-usd').checked;
+        st.corte1 = $('#b-c1').value; st.corte2 = $('#b-c2').value; st.nivel = +$('#b-niv').value;
         st.tc1 = C.num($('#b-tc1').value) || tcDe(st.corte1); st.tc2 = C.num($('#b-tc2').value) || tcDe(st.corte2);
       };
       ['#b-c1', '#b-c2'].forEach(id => $(id).onchange = () => { leer(); st.tc1 = tcDe(st.corte1); st.tc2 = tcDe(st.corte2); render(); });
       $('#b-niv').onchange = () => { leer(); render(); };
       if ($('#b-notas')) $('#b-notas').onchange = e => { const d = datos(); d.config = Object.assign({}, d.config, { notasTexto: e.target.value }); S.save(); };
       const bal = () => { leer(); return C.balanceComparativo(datos(), plan, [{ hasta: st.corte1, tc: st.tc1 }, { hasta: st.corte2, tc: st.tc2 }], st.nivel); };
-      const rg = () => { leer(); const a = C.todosLosAsientos(datos()); return [C.rubrosAl(datos(), plan, st.corte2, a), C.rubrosAl(datos(), plan, st.corte1, a)]; };
-      const varPct = (a, b) => b ? (a - b) / Math.abs(b) : null;
 
       $('#b-ver4').onclick = () => {
         const b = bal();
         const avisoTC = !st.tc1 || !st.tc2 ? '<div class="alerta">Falta el tipo de cambio de alguna fecha: las columnas en US$ quedarán vacías.</div>' : '';
-        $('#b-res').innerHTML = `${avisoTC}<div class="scroll"><table class="grid bal"><thead><tr><th>Código</th><th>Cuenta</th><th>Gs. ${fd(st.corte1)}</th><th>Gs. ${fd(st.corte2)}</th><th>Variación</th><th>%</th><th>US$ ${fd(st.corte1)}</th><th>US$ ${fd(st.corte2)}</th></tr></thead><tbody>
-          ${b.filas.map(f => `<tr class="niv${f.nivel}"><td>${esc(f.codigo)}</td><td style="padding-left:${(f.nivel - 1) * 14 + 6}px">${esc(f.nombre)}</td><td class="n">${fmt(f.gs[0])}</td><td class="n">${fmt(f.gs[1])}</td><td class="n">${fmt(f.gs[1] - f.gs[0])}</td>
-            <td class="n">${varPct(f.gs[1], f.gs[0]) === null ? '' : (varPct(f.gs[1], f.gs[0]) * 100).toFixed(1) + '%'}</td><td class="n">${fmt2(f.usd[0])}</td><td class="n">${fmt2(f.usd[1])}</td></tr>`).join('')}
-          </tbody><tfoot>${totalesBal(b).map(r => `<tr><td></td><td>${r[0]}</td><td class="n">${fmt(r[1])}</td><td class="n">${fmt(r[2])}</td><td class="n">${fmt(r[2] - r[1])}</td><td></td><td class="n">${fmt2(r[3])}</td><td class="n">${fmt2(r[4])}</td></tr>`).join('')}</tfoot></table></div>`;
+        $('#b-res').innerHTML = `${avisoTC}<div class="scroll"><table class="grid bal"><thead><tr><th>Código</th><th>Cuenta</th><th>Gs. ${fd(st.corte1)}</th><th>Gs. ${fd(st.corte2)}</th><th>US$ ${fd(st.corte1)}</th><th>US$ ${fd(st.corte2)}</th></tr></thead><tbody>
+          ${b.filas.map(f => `<tr class="niv${f.nivel}"><td>${esc(f.codigo)}</td><td style="padding-left:${(f.nivel - 1) * 14 + 6}px">${esc(f.nombre)}</td><td class="n">${fmt(f.gs[0])}</td><td class="n">${fmt(f.gs[1])}</td><td class="n">${fmt2(f.usd[0])}</td><td class="n">${fmt2(f.usd[1])}</td></tr>`).join('')}
+          </tbody><tfoot>${totalesBal(b).map(r => `<tr><td></td><td>${r[0]}</td><td class="n">${fmt(r[1])}</td><td class="n">${fmt(r[2])}</td><td class="n">${fmt2(r[3])}</td><td class="n">${fmt2(r[4])}</td></tr>`).join('')}</tfoot></table></div>`;
       };
       function totalesBal(b) {
         const usd = (v, i) => b.periodos[i].tc ? v / b.periodos[i].tc : null;
@@ -842,86 +838,16 @@
       }
       $('#b-exp4').onclick = () => {
         const b = bal();
-        const head = ['Código', 'Cuenta', 'Nivel', `Gs. ${fd(st.corte1)}`, `Gs. ${fd(st.corte2)}`, 'Variación Gs.', 'Variación %', `US$ ${fd(st.corte1)}`, `US$ ${fd(st.corte2)}`, 'Variación US$'];
-        const filas = b.filas.map(f => [f.codigo, '   '.repeat(f.nivel - 1) + f.nombre, f.nivel, f.gs[0], f.gs[1], f.gs[1] - f.gs[0], varPct(f.gs[1], f.gs[0]),
-          f.usd[0], f.usd[1], f.usd[0] !== null && f.usd[1] !== null ? C.r2(f.usd[1] - f.usd[0]) : null]);
-        const tot = totalesBal(b).map(r => ['', r[0], '', r[1], r[2], r[2] - r[1], varPct(r[2], r[1]), r[3] === null ? null : C.r2(r[3]), r[4] === null ? null : C.r2(r[4]), r[3] !== null && r[4] !== null ? C.r2(r[4] - r[3]) : null]);
+        const head = ['Código', 'Cuenta', 'Nivel', `Gs. ${fd(st.corte1)}`, `Gs. ${fd(st.corte2)}`, `US$ ${fd(st.corte1)}`, `US$ ${fd(st.corte2)}`];
+        const filas = b.filas.map(f => [f.codigo, '   '.repeat(f.nivel - 1) + f.nombre, f.nivel, f.gs[0], f.gs[1], f.usd[0], f.usd[1]]);
+        const tot = totalesBal(b).map(r => ['', r[0], '', r[1], r[2], r[3] === null ? null : C.r2(r[3]), r[4] === null ? null : C.r2(r[4])]);
         const aoa = X.encabezado(cliente(), `BALANCE COMPARATIVO – NIVEL ${st.nivel} – GUARANÍES Y DÓLARES`,
           `Cortes: ${fd(st.corte1)} y ${fd(st.corte2)} · T.C.: ${fmt2(st.tc1) || 's/d'} y ${fmt2(st.tc2) || 's/d'} Gs/US$`)
           .concat([head], filas, [[]], tot);
-        X.descargar([{ nombre: `Balance nivel ${st.nivel}`, ws: X.hoja(aoa, { anchos: [14, 48, 6, 17, 17, 16, 10, 14, 14, 14], usdCols: [7, 8, 9], pctCols: [6] }) }],
+        X.descargar([{ nombre: `Balance nivel ${st.nivel}`, ws: X.hoja(aoa, { anchos: [14, 48, 6, 17, 17, 15, 15], usdCols: [5, 6] }) }],
           `balance_nivel${st.nivel}_${st.corte1}_${st.corte2}_${slug(cliente().razon)}.xlsx`, { firmas: true });
       };
 
-      $('#b-ver49').onclick = () => {
-        const [act, ant] = rg();
-        const usd = st.usdRG49;
-        const cols = (fa, fb) => `<td class="n">${fmt(fa)}</td><td class="n">${fmt(fb)}</td>${usd ? `<td class="n">${st.tc2 ? fmt2(fa / st.tc2) : ''}</td><td class="n">${st.tc1 ? fmt2(fb / st.tc1) : ''}</td>` : ''}`;
-        const head = `<tr><th>Concepto</th><th>${fd(st.corte2)}</th><th>${fd(st.corte1)}</th>${usd ? `<th>US$ ${fd(st.corte2)}</th><th>US$ ${fd(st.corte1)}</th>` : ''}</tr>`;
-        const bg = C.estructuraRG49().map(f => f.tipo === 'rubro' ? `<tr><td class="ind">${esc(f.nombre)}</td>${cols(act.rubros[f.key], ant.rubros[f.key])}</tr>`
-          : f.val ? `<tr class="${f.tipo}"><td>${f.nombre}</td>${cols(f.val(act), f.val(ant))}</tr>` : `<tr class="${f.tipo}"><td colspan="${usd ? 5 : 3}">${f.nombre}</td></tr>`).join('');
-        const er = C.estructuraER().map(f => `<tr class="${f.total ? 'total' : ''}"><td class="${f.total ? '' : 'ind'}">${f.nombre}</td>${cols(f.val(act), f.val(ant))}</tr>`).join('');
-        const alerta = [act, ant].filter(x => x.tot.diferencia).map(x => `El balance al ${fd(x.hasta)} no cuadra (diferencia ${fmt(x.tot.diferencia)}).`).join(' ');
-        const fe = C.flujoEfectivo(datos(), plan, st.corte1, st.corte2), ev = C.evolucionPN(datos(), plan, st.corte1, st.corte2);
-        const sec = (t, filas, tot) => `<tr class="subtitulo"><td colspan="2">${t}</td></tr>${filas.map(r => `<tr><td class="ind">${esc(r[0])}</td><td class="n">${fmt(r[1])}</td></tr>`).join('')}<tr class="total"><td>Flujo neto ${t.toLowerCase()}</td><td class="n">${fmt(tot)}</td></tr>`;
-        $('#b-res').innerHTML = `${alerta ? `<div class="alerta">${alerta}</div>` : ''}<h3>Balance General comparativo (RG 49/2014)</h3><table class="grid rg49">${head}${bg}</table>
-          <h3>Estado de Resultados comparativo</h3><table class="grid rg49">${head}${er}</table>
-          <h3>Estado de Flujos de Efectivo (método indirecto) – del ${fd(st.corte1)} al ${fd(st.corte2)}</h3>
-          <table class="grid rg49">${sec('DE ACTIVIDADES OPERATIVAS', fe.op, fe.tOp)}${sec('DE ACTIVIDADES DE INVERSIÓN', fe.inv, fe.tInv)}${sec('DE ACTIVIDADES DE FINANCIACIÓN', fe.fin, fe.tFin)}
-            <tr class="gran"><td>Variación neta de disponibilidades</td><td class="n">${fmt(fe.variacion)}</td></tr><tr><td>Disponibilidades al inicio</td><td class="n">${fmt(fe.inicial)}</td></tr><tr class="gran"><td>Disponibilidades al cierre</td><td class="n">${fmt(fe.final)}</td></tr></table>
-          ${fe.control ? `<div class="alerta">El flujo no concilia con la variación de disponibilidades (diferencia ${fmt(fe.control)}).</div>` : ''}
-          <h3>Estado de Evolución del Patrimonio Neto</h3>
-          <div class="scroll"><table class="grid rg49"><tr><th>Concepto</th>${ev.columnas.map(c => `<th>${c}</th>`).join('')}</tr>
-            ${ev.filas.map((r, i) => `<tr class="${i === 0 || i === ev.filas.length - 1 ? 'total' : ''}"><td>${esc(r[0])}</td>${r[1].map(v => `<td class="n">${fmt(v)}</td>`).join('')}</tr>`).join('')}</table></div>`;
-      };
-      $('#b-exp49').onclick = () => {
-        const [act, ant] = rg();
-        const usd = st.usdRG49;
-        const enc = t => X.encabezado(cliente(), t, `Al ${fd(st.corte2)} comparativo con el ${fd(st.corte1)} – Expresado en guaraníes${usd ? ' y dólares estadounidenses' : ''}`);
-        const head = ['Concepto', `Al ${fd(st.corte2)}`, `Al ${fd(st.corte1)}`, 'Variación', 'Var. %'].concat(usd ? [`US$ ${fd(st.corte2)}`, `US$ ${fd(st.corte1)}`] : []);
-        const fila = (n, a, b) => [n, C.r0(a), C.r0(b), C.r0(a - b), varPct(a, b)].concat(usd ? [st.tc2 ? C.r2(a / st.tc2) : null, st.tc1 ? C.r2(b / st.tc1) : null] : []);
-        const bg = C.estructuraRG49().map(f => f.tipo === 'rubro' ? fila('     ' + f.nombre, act.rubros[f.key], ant.rubros[f.key]) : f.val ? fila(f.nombre, f.val(act), f.val(ant)) : [f.nombre]);
-        const er = C.estructuraER().map(f => fila(f.total ? f.nombre : '     ' + f.nombre, f.val(act), f.val(ant)));
-        // Detalle por rubro para notas a los estados financieros
-        const det = [['Rubro', 'Código', 'Cuenta', `Al ${fd(st.corte2)}`, `Al ${fd(st.corte1)}`]];
-        PD.RUBROS_RG49.forEach(r => {
-          const ctas = plan.list.filter(c => c.imputable && c.rubro === r.key && (Math.round(act.saldo[c.codigo] || 0) || Math.round(ant.saldo[c.codigo] || 0)));
-          if (!ctas.length) return;
-          const sg = c => r.grupo === 'ER' ? -1 : C.signoNatural(c.tipo);
-          ctas.forEach(c => det.push([r.nombre, c.codigo, c.nombre, C.r0((act.saldo[c.codigo] || 0) * sg(c)), C.r0((ant.saldo[c.codigo] || 0) * sg(c))]));
-        });
-        const anchos = [55, 18, 18, 16, 9, 15, 15];
-        const op = { anchos, usdCols: [5, 6], pctCols: [4] };
-        const d = datos(), fe = C.flujoEfectivo(d, plan, st.corte1, st.corte2), ev = C.evolucionPN(d, plan, st.corte1, st.corte2);
-        const flujo = [['Concepto', 'Importe Gs.']];
-        [['ACTIVIDADES OPERATIVAS', fe.op, fe.tOp], ['ACTIVIDADES DE INVERSIÓN', fe.inv, fe.tInv], ['ACTIVIDADES DE FINANCIACIÓN', fe.fin, fe.tFin]].forEach(([t, f, tot]) => {
-          flujo.push([`FLUJO DE ${t}`]); f.forEach(r => flujo.push(['     ' + r[0], C.r0(r[1])])); flujo.push([`Flujo neto de ${t.toLowerCase()}`, C.r0(tot)], []);
-        });
-        flujo.push(['VARIACIÓN NETA DE DISPONIBILIDADES', C.r0(fe.variacion)], ['Disponibilidades al inicio', C.r0(fe.inicial)], ['Disponibilidades al cierre', C.r0(fe.final)]);
-        const evo = [['Concepto'].concat(ev.columnas)].concat(ev.filas.map(r => [r[0]].concat(r[1].map(C.r0))));
-        // Notas a los estados financieros
-        const cli = cliente(), ini = C.inicioEjercicio(st.corte2, cli.cierreMes);
-        const notas = [['NOTAS A LOS ESTADOS FINANCIEROS'], [],
-          ['NOTA 1 – INFORMACIÓN GENERAL'], [`${cli.razon || ''}, RUC ${cli.ruc || ''}. Actividad principal: ${cli.actividad || '—'}. Ejercicio económico con cierre en ${MESES[(+cli.cierreMes || 12) - 1].toLowerCase()}.`], [],
-          ['NOTA 2 – BASES DE PREPARACIÓN'], ['Los estados financieros se presentan en guaraníes, en forma comparativa con el ejercicio anterior, conforme a los modelos de la Resolución General N° 49/2014 de la DNIT y a las normas contables vigentes en Paraguay.'],
-          [`Los saldos en moneda extranjera se valúan al tipo de cambio de cierre: ${fmt2(st.tc2) || 's/d'} Gs/US$ al ${fd(st.corte2)} y ${fmt2(st.tc1) || 's/d'} Gs/US$ al ${fd(st.corte1)}. Las diferencias de cambio se imputan a resultados.`], [],
-          ['NOTA 3 – PRINCIPALES CRITERIOS DE VALUACIÓN'], ['Disponibilidades y créditos: valor nominal. Bienes de uso: costo de adquisición menos depreciación acumulada calculada por el método de línea recta según la vida útil estimada. Deudas: valor nominal más intereses devengados.'], [],
-          ['NOTA 4 – COMPOSICIÓN DE RUBROS'], ['Ver hoja "Detalle por rubro".'], [],
-          ['NOTA 5 – BIENES DE USO'], ['Descripción', 'Alta', 'Vida útil', 'Valor inicio', 'Altas', 'Bajas', 'Valor cierre', 'Dep. acum. inicio', 'Dep. ejercicio', 'Dep. acum. cierre', 'Valor neto']];
-        C.cuadroBienes(d, ini, st.corte2).forEach(b => notas.push([b.descripcion, fd(b.fechaAlta), b.vidaUtil, b.valorIni, b.altas, b.bajas, b.valorFin, b.depIni, b.depEjercicio, b.depFin, b.neto]));
-        notas.push([], ['NOTA 6 – POSICIÓN EN MONEDA EXTRANJERA'], ['Cuenta', 'Nombre', 'US$', 'Gs.']);
-        C.posicionME(d, st.corte2).forEach(x => notas.push([x.codigo, x.nombre, C.r2(x.me), C.r0(x.gs)]));
-        notas.push([], ['NOTA 7 – OTRAS NOTAS Y HECHOS POSTERIORES']);
-        String(cfg().notasTexto || 'No existen hechos posteriores al cierre que afecten significativamente los estados financieros.').split('\n').forEach(l => notas.push([l]));
-        X.descargar([
-          { nombre: 'Balance General', ws: X.hoja(enc('BALANCE GENERAL COMPARATIVO (Formato RG 49/2014)').concat([head], bg), op) },
-          { nombre: 'Estado de Resultados', ws: X.hoja(enc('ESTADO DE RESULTADOS COMPARATIVO (Formato RG 49/2014)').concat([head], er), op) },
-          { nombre: 'Flujo de efectivo', ws: X.hoja(enc('ESTADO DE FLUJOS DE EFECTIVO – MÉTODO INDIRECTO').concat(flujo), { anchos: [60, 18] }) },
-          { nombre: 'Evolución del PN', ws: X.hoja(enc('ESTADO DE EVOLUCIÓN DEL PATRIMONIO NETO').concat(evo), { anchos: [48, 18, 18, 18, 18, 18] }) },
-          { nombre: 'Notas', ws: X.hoja(enc('NOTAS A LOS ESTADOS FINANCIEROS').concat(notas), { anchos: [40, 14, 10, 15, 15, 15, 15, 15, 15, 15, 15] }) },
-          { nombre: 'Detalle por rubro', ws: X.hoja(enc('COMPOSICIÓN DE RUBROS (para notas)').concat(det), { anchos: [45, 14, 40, 17, 17] }) }
-        ], `balance_RG49_${st.corte1}_${st.corte2}_${slug(cliente().razon)}.xlsx`);
-      };
     }
   };
 
@@ -933,10 +859,10 @@
       const f = C.f120(d, st.periodo);
       const val = k => ent[k] !== undefined && ent[k] !== '' ? fmt(ent[k]) : '';
       const inp = (k, n, ph) => `<label>${n}<input class="n" data-f="${k}" value="${val(k)}" placeholder="${esc(ph === undefined ? '0' : ph)}"></label>`;
-      const celda = x => x ? `<td class="cas">${x[0]}</td><td class="n">${fmt(x[1])}</td>` : '<td class="cas"></td><td></td>';
+      const celda = x => x ? `<td class="cas">${x[0]}</td><td class="n">${fmt(x[1])}</td>` : '<td class="cas vac"></td><td class="vac"></td>';
       return `<section class="card"><h2>Formulario 120 V4 – IVA General (mensual)</h2>
         <div class="acciones"><label>Período <input type="month" id="per" value="${st.periodo}"></label>
-          <button id="f-exp" class="primary">Exportar a Excel</button> <button id="f-exp-anio">Resumen anual ${st.periodo.slice(0, 4)} (Excel)</button>
+          <button id="f-exp" class="primary">Descargar (PDF o Excel)</button> <button id="f-exp-anio">Resumen anual ${st.periodo.slice(0, 4)}</button>
           <label class="chk"><input type="checkbox" id="f-agro" ${cfg().agro5 ? 'checked' : ''}> Las operaciones al 5% / exportaciones del cliente son productos agrícolas</label></div>
         <h3>Datos que no surgen de los libros</h3>
         <div class="form cols4">
@@ -953,9 +879,7 @@
         <details><summary>Rubro 2: cargar acumulados de 6 meses a mano (si los meses anteriores no están en el sistema)</summary>
           <div class="form cols4">${[[160, 'Cas. 160'], [161, 'Cas. 161'], [26, 'Cas. 26'], [162, 'Cas. 162'], [163, 'Cas. 163'], [29, 'Cas. 29']].map(([n, t]) => inp('a' + n, t, `automático: ${fmt(f.k['c' + n])}`)).join('')}</div>
         </details>
-        ${f.rubros.map(r => `<table class="grid f120 v4"><thead><tr class="titulo"><td colspan="${2 + r.cols.length * 2}">${esc(r.titulo)}</td></tr>
-          <tr><th>Inc.</th><th>Concepto</th>${r.cols.map(c => `<th colspan="2">${esc(c)}</th>`).join('')}</tr></thead><tbody>
-          ${r.filas.map(([inc, txt, cel, tot]) => `<tr class="${tot ? 'total' : ''}"><td class="c">${inc}</td><td>${esc(txt)}</td>${cel.map(celda).join('')}</tr>`).join('')}</tbody></table>`).join('')}
+        ${window.App.htmlRubros(f.rubros, celda)}
         <div class="resultado ${f.k.c58 ? 'pagar' : 'favor'}">${f.k.c58 ? `Saldo a pagar (cas. 58): <b>Gs. ${fmt(f.k.c58)}</b>` : `Sin impuesto a pagar · Saldo técnico (cas. 47): <b>Gs. ${fmt(f.k.c47)}</b> · Saldo financiero (cas. 54): <b>Gs. ${fmt(f.k.c54)}</b>`}</div>
       </section>`;
     },
@@ -968,26 +892,14 @@
         if (i.value.trim() === '') delete e[i.dataset.f]; else e[i.dataset.f] = C.num(i.value);
         S.save(); render();
       });
-      const hojaF120 = f => {
-        const max = 3, aoa = [['Inc.', 'Concepto'].concat(...new Array(max).fill(0).map((x, i) => [`Casilla ${['I', 'II', 'III'][i]}`, `Columna ${['I', 'II', 'III'][i]}`]))];
-        f.rubros.forEach(r => {
-          aoa.push([], [r.titulo], ['', ''].concat(...r.cols.map(c => ['Cas.', c])));
-          r.filas.forEach(([inc, txt, cel]) => aoa.push([inc, txt].concat(...cel.map(x => x ? [x[0], x[1]] : ['', '']))));
-        });
-        return aoa;
-      };
       $('#f-exp').onclick = () => {
         const f = C.f120(d, st.periodo);
-        const aoa = X.encabezado(cliente(), `FORMULARIO 120 V4 – IVA – PERÍODO ${st.periodo.slice(5)}/${st.periodo.slice(0, 4)}`, 'Preliquidación con casillas del formulario oficial').concat(hojaF120(f));
-        const ws = X.hoja(aoa, { anchos: [5, 90, 7, 16, 7, 16, 7, 16] });
-        // las columnas de casilla se muestran sin separador de miles
-        Object.keys(ws).forEach(ref => { if (ref[0] !== '!' && 'CEG'.includes(ref.replace(/\d+/g, '')) && ws[ref].t === 'n') ws[ref].z = '0'; });
         const det = (lista, nombre) => [['Fecha', 'Tipo', 'Número', 'RUC', 'Razón social', 'Base 10%', 'IVA 10%', 'Base 5%', 'IVA 5%', 'Exenta', nombre]].concat(
           lista.filter(x => x.fecha.slice(0, 7) === st.periodo).map(x => { const q = C.desglose(x), sg = C.signo(x); return [fd(x.fecha), TIPOS_DOC[x.tipoDoc], x.numero, x.ruc, x.razon, sg * q.base10, sg * q.iva10, sg * q.base5, sg * q.iva5, sg * q.exenta, nombre === 'Afectación' ? x.afectacion : sg * q.exportacion]; }));
-        X.descargar([{ nombre: 'Form 120', ws },
-          { nombre: 'Ventas del mes', ws: X.hoja(det(d.ventas, 'Exportación'), { anchos: [11, 14, 17, 13, 30, 14, 12, 14, 12, 12, 12] }) },
-          { nombre: 'Compras del mes', ws: X.hoja(det(d.compras, 'Afectación'), { anchos: [11, 14, 17, 13, 30, 14, 12, 14, 12, 12, 12] }) }],
-          `form120_${st.periodo}_${slug(cliente().razon)}.xlsx`);
+        const per = `Mes: ${st.periodo.slice(5)}   Año: ${st.periodo.slice(0, 4)}`;
+        window.App.descargarFormulario(120, 'IVA', 'Versión 4', per, f.rubros, `form120_${st.periodo}_${slug(cliente().razon)}`, [
+          { nombre: 'Ventas del mes', ws: X.hoja(X.encabezado(cliente(), `VENTAS DEL PERÍODO ${st.periodo.slice(5)}/${st.periodo.slice(0, 4)}`).concat(det(d.ventas, 'Exportación')), { anchos: [11, 14, 17, 13, 30, 14, 12, 14, 12, 12, 12] }) },
+          { nombre: 'Compras del mes', ws: X.hoja(X.encabezado(cliente(), `COMPRAS DEL PERÍODO ${st.periodo.slice(5)}/${st.periodo.slice(0, 4)}`).concat(det(d.compras, 'Afectación')), { anchos: [11, 14, 17, 13, 30, 14, 12, 14, 12, 12, 12] }) }]);
       };
       $('#f-exp-anio').onclick = () => {
         const y = st.periodo.slice(0, 4), memo = {};
@@ -1007,6 +919,17 @@
   };
 
   /* ================= FORMULARIO 500 ================= */
+  // Líneas del 500 agrupadas por rubro con incisos, en el formato de las proformas
+  const rubros500 = function (f) {
+    const rubros = [];
+    let actual = null, n = 0;
+    f.lineas.forEach(l => {
+      if (l.estilo === 'titulo') { actual = { titulo: `RUBRO ${l.rubro} – ${l.concepto}`, cols: ['Importe'], filas: [] }; rubros.push(actual); n = 0; return; }
+      if (!actual) return;
+      actual.filas.push([String.fromCharCode(97 + n++), l.concepto, [['', l.monto]], l.estilo === 'total']);
+    });
+    return rubros;
+  };
   const vistaF500 = {
     html() {
       const d = datos();
@@ -1016,7 +939,7 @@
       const fmtInd = i => i.valor === null ? 'n/d' : i.fmt === '%' ? (i.valor * 100).toFixed(2) + '%' : i.fmt === 'x' ? i.valor.toFixed(2) : fmt(i.valor);
       return `<section class="card"><h2>Formulario 500 – IRE Régimen General (anual)</h2>
         <div class="acciones"><label>Ejercicio que cierra en <input type="number" id="f5-anio" value="${st.anio}" style="width:6em"></label>
-          <span class="muted">Del ${fd(f.desde)} al ${fd(f.hasta)}</span> <button id="f5-exp" class="primary">Exportar a Excel</button></div>
+          <span class="muted">Del ${fd(f.desde)} al ${fd(f.hasta)}</span> <button id="f5-exp" class="primary">Descargar (PDF o Excel)</button></div>
         <h3>Datos complementarios</h3>
         <div class="form cols4">
           ${inp('quebrantoAnterior', 'Quebranto fiscal de ejercicios anteriores (últimos 5)')}
@@ -1029,10 +952,7 @@
           ${inp('ajustesMenos', 'Otros ajustes que disminuyen la renta')}
         </div>
         ${f.controles.length ? `<div class="alerta"><b>Controles:</b><ul>${f.controles.map(c => `<li>${esc(c)}</li>`).join('')}</ul></div>` : '<div class="okbox">Controles de consistencia: sin observaciones.</div>'}
-        <table class="grid f120"><thead><tr><th>Concepto</th><th>Importe (Gs.)</th></tr></thead><tbody>
-        ${f.lineas.map(l => l.estilo === 'titulo' ? `<tr class="titulo"><td colspan="2">RUBRO ${l.rubro} – ${esc(l.concepto)}</td></tr>`
-          : `<tr class="${l.estilo}"><td>${esc(l.concepto)}</td><td class="n">${fmt(l.monto)}</td></tr>`).join('')}
-        </tbody></table>
+        ${window.App.htmlRubros(rubros500(f), x => x ? `<td class="cas">${x[0]}</td><td class="n">${fmt(x[1])}</td>` : '<td class="cas vac"></td><td class="vac"></td>')}
         <div class="resultado ${f.neto > 0 ? 'pagar' : 'favor'}">${f.neto > 0 ? `IRE a ingresar: <b>Gs. ${fmt(f.neto)}</b>` : `Saldo a favor: <b>Gs. ${fmt(-f.neto)}</b>`} · Anticipo por cuota ejercicio siguiente: <b>Gs. ${fmt(f.anticipo)}</b></div>
         <h3>Indicadores financieros y fiscales</h3>
         <table class="grid" style="max-width:720px"><tbody>${f.indicadores.map(i => `<tr><td>${esc(i.nombre)}</td><td class="n">${fmtInd(i)}</td></tr>`).join('')}</tbody></table>
@@ -1048,17 +968,14 @@
       });
       $('#f5-exp').onclick = () => {
         const f = C.f500(d, plan, st.anio);
-        const aoa = X.encabezado(cliente(), `FORMULARIO 500 – IRE RÉGIMEN GENERAL – EJERCICIO ${st.anio}`, `Del ${fd(f.desde)} al ${fd(f.hasta)} – Preliquidación (verificar casillas en Marangatu)`)
-          .concat([['Rubro', 'Concepto', 'Importe Gs.']], f.lineas.map(l => l.estilo === 'titulo' ? [`RUBRO ${l.rubro}`, l.concepto, ''] : [l.rubro, l.concepto, l.monto]));
-        if (f.controles.length) aoa.push([], ['', 'CONTROLES'], ...f.controles.map(c => ['', c]));
         const ind = X.encabezado(cliente(), `INDICADORES – EJERCICIO ${st.anio}`).concat([['Indicador', 'Valor']],
           f.indicadores.map(i => [i.nombre, i.valor === null ? 'n/d' : i.fmt === 'x' ? Math.round(i.valor * 100) / 100 : i.valor]));
         const wsInd = X.hoja(ind, { anchos: [60, 18] });
         // formato porcentaje para indicadores en %
         f.indicadores.forEach((i, k) => { const cell = wsInd[XLSX.utils.encode_cell({ r: k + 5, c: 1 })]; if (cell && cell.t === 'n') cell.z = i.fmt === '%' ? '0.00%' : i.fmt === 'x' ? '0.00' : '#,##0'; });
         const cfgS = [['Parámetro', 'Valor'], ['Tasa IRE %', f.cfg.tasaIRE], ['Límite quebrantos % renta neta', f.cfg.limiteQuebrantoPct], ['Límite donaciones % renta neta', f.cfg.limiteDonacionesPct], ['Anticipos', `${f.cfg.cantAnticipos} × ${f.cfg.pctAnticipo}%`]];
-        X.descargar([{ nombre: 'Form 500', ws: X.hoja(aoa, { anchos: [10, 80, 20] }) }, { nombre: 'Indicadores', ws: wsInd }, { nombre: 'Parámetros', ws: X.hoja(cfgS, { anchos: [35, 15] }) }],
-          `form500_${st.anio}_${slug(cliente().razon)}.xlsx`);
+        window.App.descargarFormulario(500, 'IRE Régimen General', 'Anual', `Ejercicio ${st.anio}`, rubros500(f), `form500_${st.anio}_${slug(cliente().razon)}`,
+          [{ nombre: 'Indicadores', ws: wsInd }, { nombre: 'Parámetros', ws: X.hoja(cfgS, { anchos: [35, 15] }) }]);
       };
     }
   };

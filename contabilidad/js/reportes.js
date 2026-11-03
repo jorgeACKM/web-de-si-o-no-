@@ -41,7 +41,7 @@
     wb.creator = 'ContaPY'; wb.created = new Date();
     const hojas = doc.hojas && doc.hojas.length ? doc.hojas : [doc];
     const usados = new Set();
-    hojas.forEach((h, i) => hojaExcel(wb, Object.assign({ identificacion: doc.identificacion, cliente: doc.cliente }, h), usados, i));
+    hojas.forEach((h, i) => { const hh = Object.assign({ identificacion: doc.identificacion, cliente: doc.cliente }, h); if (hh.formulario) formularioExcel(wb, hh, usados, i); else hojaExcel(wb, hh, usados, i); });
     const buf = await wb.xlsx.writeBuffer();
     bajar(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), archivo.replace(/\.(xlsx|pdf)$/i, '') + '.xlsx');
   }
@@ -135,6 +135,125 @@
   }
   const firstText = b => Math.max(0, b.columnas.findIndex(c => !c.tipo || c.tipo === 'texto'));
 
+  /* ======================= FORMULARIOS (formato de la proforma DNIT) =======================
+   * h.formulario = { numero, nombre, version, periodo, rubros: [{ titulo, cols, filas: [[inc, texto, [[casilla, valor] | null, ...], esTotal]] }] }
+   * Las columnas de cada rubro se alinean a la derecha, como en la proforma oficial. */
+  const fmtForm = v => typeof v === 'number' ? (Math.round(v) || 0).toLocaleString('es-PY') : (v === null || v === undefined ? '' : String(v));
+  const maxCols = F => Math.max(1, ...F.rubros.map(r => r.cols.length));
+  const celdasRubro = (r, max) => r.filas.map(([inc, txt, cel, tot]) => {
+    const pares = (cel || []).slice();
+    while (pares.length < r.cols.length) pares.push(null);
+    return { inc, txt, pares, tot, off: max - r.cols.length };
+  });
+
+  function formularioPDF(pdf, h, cli, M, pie) {
+    const F = h.formulario, W = pdf.internal.pageSize.getWidth(), ancho = W - 2 * M;
+    let y = 24;
+    // encabezado: número | contribuyente | período
+    const hEnc = 50, wNum = 84, xm = M + wNum + (ancho - wNum) * 0.58;
+    pdf.setDrawColor(0); pdf.setLineWidth(1.3); pdf.rect(M, y, ancho, hEnc);
+    pdf.setLineWidth(0.6); pdf.line(M + wNum, y, M + wNum, y + hEnc); pdf.line(xm, y, xm, y + hEnc);
+    pdf.setTextColor(0); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(24);
+    pdf.text(String(F.numero), M + wNum / 2, y + 25, { align: 'center' });
+    pdf.setFontSize(6.3); pdf.setFont('helvetica', 'bold');
+    pdf.splitTextToSize(pdfTxt(F.nombre || ''), wNum - 8).slice(0, 2).concat([pdfTxt(F.version || '')]).forEach((l, i) => pdf.text(l, M + wNum / 2, y + 35 + i * 7, { align: 'center' }));
+    const par = (x, yy, k, v, maxW) => { pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7.5); pdf.text(pdfTxt(k), x, yy); const lw = pdf.getTextWidth(pdfTxt(k)) + 3; pdf.setFont('helvetica', 'normal'); pdf.text((pdf.splitTextToSize(pdfTxt(v), maxW - lw)[0]) || '', x + lw, yy); };
+    const x1 = M + wNum + 6, w1 = xm - x1 - 6;
+    par(x1, y + 14, 'RUC:', cli.ruc || '', w1);
+    par(x1, y + 26, 'Nombre / Razón social:', cli.razon || '', w1);
+    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7.5); pdf.text('01 Declaración Jurada Original', x1, y + 38);
+    pdf.setFont('helvetica', 'bold'); pdf.text(pdfTxt('Período / Ejercicio fiscal'), xm + 6, y + 14);
+    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9); pdf.text(pdf.splitTextToSize(pdfTxt(F.periodo || ''), M + ancho - xm - 12).slice(0, 2), xm + 6, y + 28);
+    y += hEnc + 8;
+    const max = maxCols(F), wInc = 22, wCas = 22, wVal = 57, wTxt = ancho - wInc - max * (wCas + wVal);
+    const columnStyles = { 0: { cellWidth: wInc, halign: 'center' }, 1: { cellWidth: wTxt } };
+    for (let i = 0; i < max; i++) { columnStyles[2 + 2 * i] = { cellWidth: wCas, halign: 'center' }; columnStyles[3 + 2 * i] = { cellWidth: wVal, halign: 'right' }; }
+    const GRIS = [242, 242, 242], VACIO = [226, 226, 226], TIT = [214, 214, 214];
+    F.rubros.forEach(r => {
+      const off = max - r.cols.length;
+      const head = [[{ content: pdfTxt(r.titulo), colSpan: 2 + 2 * max, styles: { fillColor: TIT, halign: 'left' } }],
+        [{ content: 'INC.' }, { content: '', colSpan: 1 + 2 * off }].concat(r.cols.map(c => ({ content: pdfTxt(c), colSpan: 2 })))];
+      const body = celdasRubro(r, max).map(f => {
+        const fila = [{ content: pdfTxt(f.inc) }, { content: pdfTxt(f.txt), colSpan: 1 + 2 * f.off }];
+        f.pares.forEach(x => {
+          if (!x) fila.push({ content: '', styles: { fillColor: VACIO } }, { content: '', styles: { fillColor: VACIO } });
+          else fila.push({ content: x[0] === '' || x[0] === null || x[0] === undefined ? '' : String(x[0]), styles: x[0] === '' ? {} : { fillColor: GRIS, fontStyle: 'bold' } }, { content: pdfTxt(fmtForm(x[1])) });
+        });
+        fila._tot = f.tot;
+        return fila;
+      });
+      pdf.autoTable({
+        startY: y, head, body, theme: 'grid', columnStyles, rowPageBreak: 'avoid',
+        margin: { top: 30, left: M, right: M, bottom: 34 },
+        styles: { font: 'helvetica', fontSize: 6.8, cellPadding: { top: 2.2, bottom: 2.2, left: 3, right: 3 }, lineColor: [85, 85, 85], lineWidth: 0.4, textColor: 20, valign: 'middle', overflow: 'linebreak' },
+        headStyles: { fillColor: GRIS, textColor: 20, fontStyle: 'bold', halign: 'center' },
+        didParseCell: d => { if (d.section === 'body' && d.row.raw && d.row.raw._tot) d.cell.styles.fontStyle = 'bold'; },
+        didDrawPage: () => pie()
+      });
+      y = pdf.lastAutoTable.finalY + 7;
+    });
+    (h.bloques || []).forEach(b => {
+      if (b.tipo !== 'texto') return;
+      const H = pdf.internal.pageSize.getHeight();
+      pdf.setFontSize(7.5); pdf.setTextColor(0);
+      if (b.titulo) { pdf.setFont('helvetica', 'bold'); pdf.text(pdfTxt(b.titulo), M, y + 8); y += 12; }
+      pdf.setFont('helvetica', 'normal');
+      (b.parrafos || []).forEach(p => pdf.splitTextToSize(pdfTxt(p), ancho).forEach(l => { if (y > H - 50) { pdf.addPage(); pie(); y = 40; } pdf.text(l, M, y + 8); y += 10; }));
+      y += 4;
+    });
+  }
+
+  function formularioExcel(wb, h, usados, idx) {
+    const F = h.formulario, cli = h.cliente || {}, max = maxCols(F), N = 2 + 2 * max;
+    const ws = wb.addWorksheet(nombreHoja(h.nombreHoja || ('Form ' + F.numero), usados), {
+      pageSetup: { paperSize: 9, orientation: 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.35, right: 0.35, top: 0.45, bottom: 0.5, header: 0.2, footer: 0.25 } },
+      views: [{ showGridLines: false }]
+    });
+    ws.columns = [{ width: 5 }, { width: 78 }].concat(...new Array(max).fill(0).map(() => [{ width: 6 }, { width: 15 }]));
+    ws.headerFooter.oddFooter = `&L&8Generado con ContaPY el ${hoyTxt()}&R&8Página &P de &N`;
+    const fino = { style: 'thin', color: { argb: 'FF555555' } }, todo = { top: fino, left: fino, bottom: fino, right: fino };
+    const fill = hex => ({ type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + hex } });
+    const caja = (r1, c1, r2, c2, valor, estilo) => { if (r1 !== r2 || c1 !== c2) ws.mergeCells(r1, c1, r2, c2); const c = ws.getCell(r1, c1); c.value = valor; Object.assign(c, estilo || {}); for (let r = r1; r <= r2; r++) for (let k = c1; k <= c2; k++) ws.getCell(r, k).border = todo; return c; };
+    // encabezado
+    caja(1, 1, 3, 1, F.numero, { font: { bold: true, size: 18 }, alignment: { horizontal: 'center', vertical: 'middle' } });
+    caja(1, 2, 1, 2, `RUC: ${cli.ruc || ''}`, { font: { bold: true, size: 9 } });
+    caja(2, 2, 2, 2, `Nombre / Razón social: ${cli.razon || ''}`, { font: { size: 9 } });
+    caja(3, 2, 3, 2, `01 Declaración Jurada Original · ${F.nombre || ''} · ${F.version || ''}`, { font: { size: 8 } });
+    caja(1, 3, 1, N, 'Período / Ejercicio fiscal', { font: { bold: true, size: 9 } });
+    caja(2, 3, 3, N, F.periodo || '', { font: { size: 11 }, alignment: { vertical: 'middle' } });
+    let r = 5;
+    F.rubros.forEach(rb => {
+      const off = max - rb.cols.length;
+      caja(r, 1, r, N, rb.titulo, { font: { bold: true, size: 9 }, fill: fill('D6D6D6') }); r++;
+      caja(r, 1, r, 1, 'INC.', { font: { bold: true, size: 8 }, fill: fill('F2F2F2'), alignment: { horizontal: 'center' } });
+      caja(r, 2, r, 2 + 2 * off, '', { fill: fill('F2F2F2') });
+      rb.cols.forEach((c, i) => { const k = 3 + 2 * (off + i); caja(r, k, r, k + 1, c, { font: { bold: true, size: 8 }, fill: fill('F2F2F2'), alignment: { horizontal: 'center', wrapText: true } }); });
+      r++;
+      celdasRubro(rb, max).forEach(f => {
+        const negrita = f.tot ? { bold: true, size: 8.5 } : { size: 8.5 };
+        caja(r, 1, r, 1, f.inc, { font: negrita, alignment: { horizontal: 'center', vertical: 'middle' } });
+        caja(r, 2, r, 2 + 2 * f.off, f.txt, { font: negrita, alignment: { wrapText: true, vertical: 'middle' } });
+        f.pares.forEach((x, i) => {
+          const k = 3 + 2 * (f.off + i);
+          if (!x) { caja(r, k, r, k, null, { fill: fill('E2E2E2') }); caja(r, k + 1, r, k + 1, null, { fill: fill('E2E2E2') }); return; }
+          const cas = x[0] === '' || x[0] === undefined ? null : x[0];
+          caja(r, k, r, k, cas, cas === null ? {} : { font: { bold: true, size: 8 }, fill: fill('F2F2F2'), alignment: { horizontal: 'center', vertical: 'middle' }, numFmt: '0' });
+          caja(r, k + 1, r, k + 1, typeof x[1] === 'number' ? Math.round(x[1]) : (x[1] === undefined ? null : x[1]), { font: negrita, alignment: { horizontal: 'right', vertical: 'middle' }, numFmt: '#,##0' });
+        });
+        const largo = String(f.txt || '').length;
+        if (largo > 95) ws.getRow(r).height = 12.5 * Math.ceil(largo / 95);
+        r++;
+      });
+      r++;
+    });
+    (h.bloques || []).forEach(b => {
+      if (b.tipo !== 'texto') return;
+      if (b.titulo) { caja(r, 1, r, N, b.titulo, { font: { bold: true, size: 9 } }); ws.getCell(r, 1).border = {}; r++; }
+      (b.parrafos || []).forEach(p => { ws.mergeCells(r, 1, r, N); const c = ws.getCell(r, 1); c.value = p; c.font = { size: 8.5 }; c.alignment = { wrapText: true }; r++; });
+      r++;
+    });
+  }
+
   /* ======================= PDF (jsPDF + autotable) ======================= */
   function aPDF(doc, archivo) {
     const J = root.jspdf && root.jspdf.jsPDF;
@@ -163,6 +282,7 @@
     hojas.forEach((hh, ih) => {
       const h = Object.assign({ identificacion: doc.identificacion }, hh);
       if (ih > 0) pdf.addPage('a4', orient(h));
+      if (h.formulario) { formularioPDF(pdf, h, cli, M, pie); return; }
       const W = pdf.internal.pageSize.getWidth();
       // bloque de título de la sección
       let y = 62;

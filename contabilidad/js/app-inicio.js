@@ -143,7 +143,7 @@
   const v120 = A.VISTAS.f120;
   A.VISTAS.f120 = Object.assign({}, v120, {
     html() {
-      return v120.html().replace('<table class="grid f120 v4">', `<div id="ayuda-cas" class="ayuda-cas muted">💡 Toque un número de casilla para ver qué va ahí según el instructivo de la DNIT y de dónde lo toma el sistema.</div><table class="grid f120 v4">`);
+      return v120.html().replace('<div class="form-prof">', `<div id="ayuda-cas" class="ayuda-cas muted">Toque un número de casilla para ver su instructivo.</div><div class="form-prof">`);
     },
     bind() {
       v120.bind();

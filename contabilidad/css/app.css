@@ -184,3 +184,12 @@ table.docprev tr.e-total td { font-weight: 700; background: #d9eae4; }
 table.docprev tr.e-gran td { font-weight: 800; background: var(--primary); color: #fff; }
 table.docprev tr.e-nota td { font-style: italic; color: var(--muted); }
 .notas-rg49 { display: grid; gap: 8px; } .notas-rg49 label { display: flex; flex-direction: column; gap: 3px; font-size: 13px; }
+
+/* Formularios con el formato de la proforma */
+.form-prof table.f120.prof { width: 100%; max-width: 1100px; table-layout: fixed; margin-bottom: 8px; border-collapse: collapse; }
+.form-prof col.c-inc { width: 38px; } .form-prof col.c-cas { width: 46px; } .form-prof col.c-val { width: 118px; }
+.form-prof table.f120.prof td, .form-prof table.f120.prof th { border: 1px solid #8a8f96; padding: 3px 5px; }
+.form-prof table.f120.prof tr.titulo td { background: #d6d6d6; color: #111; }
+.form-prof table.f120.prof thead th { background: #f2f2f2; color: #111; text-align: center; white-space: normal; }
+.form-prof table.f120.prof td.vac { background: #e4e4e4; }
+.form-prof table.f120.prof td.cas { text-align: center; font-weight: 700; font-size: 12px; color: #111; background: #f2f2f2; width: auto; padding: 3px 2px; }

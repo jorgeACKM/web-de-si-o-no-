@@ -13,13 +13,31 @@
   A.tablaFormulario = function (rubros, editables) {
     editables = editables || {};
     const celda = x => {
-      if (!x) return '<td class="cas"></td><td></td>';
+      if (!x) return '<td class="cas vac"></td><td class="vac"></td>';
       const [n, val] = x, ed = editables[n];
       return `<td class="cas" data-cas="${n}">${n}</td><td class="n">${ed ? `<input class="n cas-in" data-k="${ed}" value="${val ? fmt(val) : ''}" placeholder="0">` : fmt(val)}</td>`;
     };
-    return rubros.map(r => `<table class="grid f120 v4"><thead><tr class="titulo"><td colspan="${2 + r.cols.length * 2}">${esc(r.titulo)}</td></tr>
-      <tr><th>Inc.</th><th>Concepto</th>${r.cols.map(c => `<th colspan="2">${esc(c)}</th>`).join('')}</tr></thead><tbody>
-      ${r.filas.map(([inc, txt, cel, tot]) => `<tr class="${tot ? 'total' : ''}"><td class="c">${inc}</td><td>${esc(txt)}</td>${cel.map(celda).join('')}</tr>`).join('')}</tbody></table>`).join('');
+    return A.htmlRubros(rubros, celda);
+  };
+  // Igual que la proforma: columnas a la derecha y ancho común para todos los rubros
+  A.htmlRubros = function (rubros, celda) {
+    const max = Math.max(1, ...rubros.map(r => r.cols.length));
+    return `<div class="form-prof">${rubros.map(r => { const off = max - r.cols.length, sp = 1 + 2 * off;
+      return `<table class="grid f120 v4 prof"><colgroup><col class="c-inc"><col>${'<col class="c-cas"><col class="c-val">'.repeat(max)}</colgroup>
+      <thead><tr class="titulo"><td colspan="${2 + max * 2}">${esc(r.titulo)}</td></tr>
+      <tr><th>Inc.</th><th colspan="${sp}"></th>${r.cols.map(c => `<th colspan="2">${esc(c)}</th>`).join('')}</tr></thead><tbody>
+      ${r.filas.map(([inc, txt, cel, tot]) => { const pares = (cel || []).slice(); while (pares.length < r.cols.length) pares.push(null);
+        return `<tr class="${tot ? 'total' : ''}"><td class="c">${inc}</td><td colspan="${sp}">${esc(txt)}</td>${pares.map(celda).join('')}</tr>`; }).join('')}</tbody></table>`; }).join('')}</div>`;
+  };
+  // Documento descargable (PDF o Excel) con el formato de la proforma
+  A.docFormulario = function (numero, nombre, version, periodo, rubros, bloques) {
+    return { titulo: `FORMULARIO ${numero} – ${nombre}`, nombreHoja: `Form ${numero}`, formulario: { numero, nombre, version, periodo: String(periodo), rubros }, bloques: bloques || [] };
+  };
+  A.descargarFormulario = function (numero, nombre, version, periodo, rubros, archivo, otras) {
+    const doc = A.docFormulario(numero, nombre, version, periodo, rubros);
+    const R = window.Reportes;
+    if (!otras || !otras.length) return R.descargarDocumento(Object.assign(doc, { cliente: cliente() }), archivo);
+    X.descargar([{ nombre: `Form ${numero}`, doc }].concat(otras), archivo);
   };
   A.ayudaCasillas = function (tabla) {
     const caja = $('#ayuda-cas');
@@ -48,7 +66,7 @@
       ${cuerpo}${extra || ''}<div class="pie">Proforma para transcribir en el Sistema Marangatu. Los importes son de control y no reemplazan a la declaración presentada.</div></body></html>`);
     w.document.close();
   };
-  const ayudaBox = '<div id="ayuda-cas" class="ayuda-cas muted">💡 Toque un número de casilla para ver qué va ahí según el instructivo de la DNIT y de dónde lo toma el sistema. Las casillas con recuadro blanco se cargan; el resto se calcula solo.</div>';
+  const ayudaBox = '<div id="ayuda-cas" class="ayuda-cas muted">Toque un número de casilla para ver su instructivo.</div>';
   const alertasHTML = l => l.length ? `<div class="alerta">${l.map(esc).join('<br>')}</div>` : '';
 
   /* ======================= FORM. 515 – IRP RSP ======================= */
@@ -60,7 +78,7 @@
       return `<section class="card"><h2>Formulario 515 – IRP Rentas derivadas de la prestación de servicios personales</h2>
         <div class="acciones"><label>Ejercicio fiscal <input type="number" id="i5-anio" value="${anio}" style="width:6em"></label>
           <label class="chk"><input type="checkbox" id="i5-sug" ${e.usarSugeridos !== false ? 'checked' : ''}> Usar valores sugeridos por la contabilidad</label>
-          <button id="i5-print" class="primary">Imprimir proforma</button> <button id="i5-exp">Exportar a Excel</button></div>
+          <button id="i5-print" class="primary">Imprimir proforma</button> <button id="i5-exp">Descargar (PDF o Excel)</button></div>
         <p class="muted">Sugeridos para ${anio}: ingresos gravados ${fmt(sg.c12)} (cas. 12) · egresos de la actividad ${fmt(sg.c15)} (cas. 15) · aporte patronal IPS ${fmt(sg.c19)} (cas. 19) · retenciones IRP ${fmt(sg.c41)} (cas. 41).
           Lo que escriba en una casilla reemplaza al valor sugerido; deje vacío para volver al sugerido.</p>
         ${(datos().cuentas || []).some(c => c.irp) ? '' : '<div class="alerta">El plan de cuentas de este cliente no tiene cuentas con casilla del IRP: todas las compras irán a la casilla 15. Agréguelas en Cliente → Plan de cuentas → "Agregar cuentas de IRP".</div>'}
@@ -109,7 +127,7 @@
           ${Object.entries(C.TIPOS_FAMILIAR).map(([k, n], i) => `<tr><td class="inc">${k}</td><td>${n}: ${x.familiares.filter(f => f.tipo === k).map(f => esc(f.ci)).join(', ') || '—'}</td><td class="n">${147 + i} · ${x.k['c' + (147 + i)]}</td></tr>`).join('')}</table>`;
         A.imprimirFormulario(515, 'IRP – Servicios personales', 'Versión 1', anio, x.rubros, anexo);
       };
-      $('#i5-exp').onclick = () => exportarRubros(`FORMULARIO 515 – IRP SERVICIOS PERSONALES – EJERCICIO ${anio}`, r().rubros, `form515_${anio}_${slug(cliente().razon)}.xlsx`);
+      $('#i5-exp').onclick = () => A.descargarFormulario(515, 'IRP – Servicios personales', 'Versión 1', anio, r().rubros, `form515_${anio}_${slug(cliente().razon)}`);
     }
   }, 'f500');
 
@@ -122,7 +140,7 @@
         <tbody>${filas.map(fila).join('') || '<tr><td colspan="6" class="muted">Sin operaciones</td></tr>'}<tr class="total"><td colspan="5">TOTAL DEL RUBRO</td><td class="n"><span class="cas-tag" data-cas="${cas}">${cas}</span> ${fmt(total)}</td></tr></tbody></table>`;
       const tipoOpts = rb => C.TIPOS_516[rb].map(t => `<option>${t}</option>`).join('');
       return `<section class="card"><h2>Formulario 516 – IRP Rentas y ganancias del capital (versión 2)</h2>
-        <div class="acciones"><label>Ejercicio fiscal <input type="number" id="i6-anio" value="${anio}" style="width:6em"></label> <button id="i6-print" class="primary">Imprimir proforma</button> <button id="i6-exp">Exportar a Excel</button></div>
+        <div class="acciones"><label>Ejercicio fiscal <input type="number" id="i6-anio" value="${anio}" style="width:6em"></label> <button id="i6-print" class="primary">Imprimir proforma</button> <button id="i6-exp">Descargar (PDF o Excel)</button></div>
         ${alertasHTML(r.alertas)}
         <h3>Agregar operación</h3>
         <div class="form cols4"><label>Rubro <select id="op-rub"><option value="1">1 – Enajenación de bienes, acciones, cuotas, derechos</option><option value="2">2 – Arrendamiento de inmuebles</option><option value="3">3 – Rescate de acciones o cuotas partes</option></select></label>
@@ -160,7 +178,7 @@
         { titulo: 'RUBRO 3 – RESCATE TOTAL O PARCIAL DE ACCIONES O CUOTAS PARTES', cols: ['Total renta neta imponible'], filas: x.r3.map(f => ['', `${f.nombre} – I: ${fmt(f.I)} · II: ${fmt(f.II)}`, [null]]).concat([['', 'TOTAL RUBRO 3', [[120, x.k.c120]], 1]]) }
       ].concat(C.estructura516(x.k, x.regalias)); };
       $('#i6-print').onclick = () => A.imprimirFormulario(516, 'IRP – Rentas y ganancias del capital', 'Versión 2', anio, rub());
-      $('#i6-exp').onclick = () => exportarRubros(`FORMULARIO 516 – IRP RENTAS Y GANANCIAS DEL CAPITAL – EJERCICIO ${anio}`, rub(), `form516_${anio}_${slug(cliente().razon)}.xlsx`);
+      $('#i6-exp').onclick = () => A.descargarFormulario(516, 'IRP – Rentas y ganancias del capital', 'Versión 2', anio, rub(), `form516_${anio}_${slug(cliente().razon)}`);
     }
   }, 'f515');
   C.estructura516 = function (k, regalias) {
@@ -179,13 +197,6 @@
         ['d', 'TOTAL (130 + 131)', [c(132)], 1]] }
     ];
   };
-  function exportarRubros(titulo, rubros, archivo) {
-    const aoa = X.encabezado(cliente(), titulo, 'Proforma de control').concat([['Inc.', 'Concepto', 'Cas.', 'Columna I', 'Cas.', 'Columna II']]);
-    rubros.forEach(r => { aoa.push([], [r.titulo]); r.filas.forEach(([inc, txt, cel]) => aoa.push([inc, txt].concat(...cel.map(x => x ? [x[0], x[1]] : ['', ''])))); });
-    const ws = X.hoja(aoa, { anchos: [5, 90, 6, 16, 6, 16] });
-    Object.keys(ws).forEach(ref => { if (ref[0] !== '!' && 'CE'.includes(ref.replace(/\d+/g, '')) && ws[ref].t === 'n') ws[ref].z = '0'; });
-    X.descargar([{ nombre: titulo.slice(0, 28), ws }], archivo);
-  }
 
   /* ======================= IDU ======================= */
   A.registrar('idu', 'IDU – Dividendos y utilidades', 'Impuestos', {

@@ -50,9 +50,9 @@
     const ident = identificacion(desde1, h1);
     const b1 = C.rg49Balance(d, plan, h1, a), b0 = C.rg49Balance(d, plan, h0, a);
     const r1 = C.rg49Resultados(d, plan, h1, a), r0 = C.rg49Resultados(d, plan, h0, a);
-    const usd = !!opts.usd;
+    const usd = false, enUSD = opts.moneda === 'USD';
     const firmas = { tipo: 'firmas' };
-    const sub = `Expresado en guaraníes${usd ? ' y dólares estadounidenses' : ''}`;
+    const sub = enUSD ? `Expresado en dólares estadounidenses · T.C. ${fmtTC(tc.x1)} y ${fmtTC(tc.x0)} Gs/US$` : 'Expresado en guaraníes';
     // Anexo 1
     const f1 = filasEstructura(C.RG49_BG, b1.total, b0.total, b1.extras, b0.extras, { completo: opts.completo, usd }, ['1', '2', '3'], tc);
     f1.push({ v: ['', 'TOTAL PASIVO Y PATRIMONIO NETO'].concat(valores(b1.pasivo + b1.pn, b0.pasivo + b0.pn, usd, tc)), estilo: 'gran' });
@@ -74,7 +74,8 @@
     const f3 = C.RG49_FLUJO_FILAS.map(([t, k, est]) => ({ v: [t].concat(k ? [fl1[k], fl0[k]] : ['', '']), estilo: est === 'titulo' ? 'seccion' : est === 'total' ? 'total' : est === 'gran' ? 'gran' : '' }));
     // Anexo 4
     const pn = C.rg49PN(d, plan, h1, a);
-    const f4 = pn.filas.map(([t, v, est]) => ({ v: [t].concat(v || ['', '', '', '', '', '', '']), estilo: est === 'titulo' ? 'seccion' : est === 'gran' ? 'gran' : est === 'total' ? 'total' : '' }));
+    const corteX0 = pn.filas.findIndex(([t]) => /E INICIO DEL EJERCICIO/.test(t));
+    const f4 = pn.filas.map(([t, v, est], i) => ({ v: [t].concat(v || ['', '', '', '', '', '', '']), estilo: est === 'titulo' ? 'seccion' : est === 'gran' ? 'gran' : est === 'total' ? 'total' : '', per: i <= corteX0 ? 0 : 1 }));
     // Anexo 5
     const notasTxt = Object.assign(C.rg49NotasPorDefecto(d, anio), ((d.notasRG49 || {})[anio]) || {});
     const comp = C.rg49Composicion(d, plan, h0, h1);
@@ -97,18 +98,36 @@
     const avisos = [];
     if (b1.diferencia) avisos.push(`El balance al ${fd(h1)} no cuadra (diferencia ${fmt(b1.diferencia)}).`);
     if (fl1.diferencia) avisos.push(`El flujo de efectivo no concilia con la variación de disponibilidades (diferencia ${fmt(fl1.diferencia)}).`);
-    return {
-      avisos, b1, r1, fl1,
-      doc: { cliente: cliente(), titulo: 'ESTADOS FINANCIEROS – RG 49/2014', hojas: [
+    if (enUSD && (!tc.x1 || !tc.x0)) avisos.push('Falta el tipo de cambio de alguna de las fechas de corte.');
+    const hojas = [
         anexo(1, 'Balance General', [{ tipo: 'tabla', columnas: columnasComparativas('Código', desde1, h1, h0, usd), filas: f1 }]),
         anexo(2, 'Estado de Resultados', [{ tipo: 'tabla', columnas: columnasComparativas('Código', desde1, h1, h0, usd), filas: f2 }]),
         anexo(3, 'Estado de Flujo de Efectivo', [{ tipo: 'tabla', columnas: [{ t: 'Concepto', w: 70 }, { t: fd(h1), w: 18, tipo: 'gs' }, { t: fd(h0), w: 18, tipo: 'gs' }], filas: f3 }]),
         anexo(4, 'Estado de Cambios del Patrimonio Neto', [{ tipo: 'tabla', columnas: [{ t: 'Cuentas', w: 40 }].concat(C.RG49_PN_COLS.map(t => ({ t, w: 14, tipo: 'gs' }))), filas: f4 }], 'landscape'),
         anexo(5, 'Notas a los Estados Financieros', bloques5),
         anexo(6, 'Cuadro de Revalúo y Depreciación de Bienes del Activo Fijo', [{ tipo: 'tabla', columnas: colsRev, filas: f6 }], 'landscape')
-      ] }
-    };
+      ];
+    if (enUSD) aDolares(hojas, h1, h0, tc);
+    return { avisos, b1, r1, fl1, doc: { cliente: cliente(), titulo: 'ESTADOS FINANCIEROS – RG 49/2014' + (enUSD ? ' (US$)' : ''), hojas } };
   };
+  const fmtTC = t => t ? t.toLocaleString('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 's/d';
+  // Expresa en dólares cada columna en guaraníes, con el T.C. de su fecha de corte
+  function aDolares(hojas, h1, h0, tc) {
+    const t1 = fd(h1), t0 = fd(h0);
+    hojas.forEach(h => (h.bloques || []).forEach(b => {
+      if (b.tipo !== 'tabla') return;
+      b.columnas.forEach((c, i) => {
+        if (c.tipo !== 'gs') return;
+        const fijo = c.t === t0 ? tc.x0 : c.t === t1 ? tc.x1 : null;
+        b.filas.forEach(f => {
+          const v = f.v[i]; if (typeof v !== 'number') return;
+          const t = fijo !== null ? fijo : (f.per === 0 ? tc.x0 : tc.x1);
+          f.v[i] = t ? Math.round(v / t * 100) / 100 : null;
+        });
+        c.tipo = 'usd';
+      });
+    }));
+  }
 
   /* ---------- Vista previa en pantalla (mismo documento) ---------- */
   A.htmlDocumento = function (doc) {
@@ -129,22 +148,23 @@
       const d = datos(), anio = +st.corte2.slice(0, 4), notas = Object.assign(C.rg49NotasPorDefecto(d, anio), ((d.notasRG49 || {})[anio]) || {});
       return vB.html()
         .replace(/<button id="b-ver49"[^>]*>[^<]*<\/button>/, '<button id="b-ver49" class="primary">Ver estados RG 49 (Anexos 1 a 6)</button>')
-        .replace(/<button id="b-exp49"[^>]*>[^<]*<\/button>/, '<button id="b-exp49">Descargar estados RG 49 (PDF o Excel)</button> <label class="chk"><input type="checkbox" id="b-completo" ' + (st.rg49Completo ? 'checked' : '') + '> Formato completo (incluir líneas sin saldo)</label>')
+        .replace(/<button id="b-exp49"[^>]*>[^<]*<\/button>/, '<button id="b-exp49">Descargar estados RG 49 (PDF o Excel)</button> <label>Moneda <select id="b-mon"><option value="GS">Guaraníes</option><option value="USD"' + (st.monedaRG49 === 'USD' ? ' selected' : '') + '>Dólares</option></select></label> <label class="chk"><input type="checkbox" id="b-completo" ' + (st.rg49Completo ? 'checked' : '') + '> Formato completo (incluir líneas sin saldo)</label>')
         .replace(/<details><summary>Texto de notas adicionales[\s\S]*?<\/details>/, `<details><summary>Notas a los estados financieros (Anexo 5) – ejercicio ${anio}</summary>
           <div class="notas-rg49">${E.NOTAS.map(([n, t]) => `<label><b>Nota ${n}.</b> ${esc(t)}<textarea data-nota="${n}" rows="${['1', '2', '3'].includes(n) ? 3 : 2}">${esc(notas[n] || '')}</textarea></label>`).join('')}</div></details>`);
     },
     bind() {
       vB.bind();
       const d = datos(), anio = +st.corte2.slice(0, 4);
-      const leerOpts = () => { st.corte1 = $('#b-c1').value; st.corte2 = $('#b-c2').value; st.usdRG49 = $('#b-usd').checked; st.rg49Completo = $('#b-completo').checked;
+      const leerOpts = () => { st.corte1 = $('#b-c1').value; st.corte2 = $('#b-c2').value; st.monedaRG49 = $('#b-mon').value; st.rg49Completo = $('#b-completo').checked;
         const tc = f => C.num((d.tiposCambio || {})[f.slice(0, 7)]); st.tc1 = C.num($('#b-tc1').value) || tc(st.corte1); st.tc2 = C.num($('#b-tc2').value) || tc(st.corte2);
-        return { corte1: st.corte1, corte2: st.corte2, usd: st.usdRG49, completo: st.rg49Completo, tc1: st.tc1, tc2: st.tc2 }; };
+        return { corte1: st.corte1, corte2: st.corte2, moneda: st.monedaRG49, completo: st.rg49Completo, tc1: st.tc1, tc2: st.tc2 }; };
       $$('[data-nota]').forEach(t => t.onchange = () => { const o = d.notasRG49 || (d.notasRG49 = {}); (o[anio] || (o[anio] = {}))[t.dataset.nota] = t.value; S.save(); });
       $('#b-ver49').onclick = () => {
         const r = A.documentoRG49(leerOpts());
         $('#b-res').innerHTML = (r.avisos.length ? `<div class="alerta">${r.avisos.map(esc).join('<br>')}</div>` : '<div class="okbox">Balance cuadrado · resultado del Anexo 2 igual al contable · flujo conciliado con las disponibilidades.</div>') + A.htmlDocumento(r.doc);
       };
-      $('#b-exp49').onclick = () => { const o = leerOpts(), r = A.documentoRG49(o); if (r.avisos.length) toast(r.avisos.join(' '), 'error'); R.descargarDocumento(r.doc, `estados_financieros_RG49_${o.corte2}_${slug(cliente().razon)}`); };
+      $('#b-exp49').onclick = () => { const o = leerOpts(), r = A.documentoRG49(o); if (r.avisos.length) toast(r.avisos.join(' '), 'error'); R.descargarDocumento(r.doc, `estados_financieros_RG49_${o.moneda === 'USD' ? 'USD_' : ''}${o.corte2}_${slug(cliente().razon)}`); };
+      $('#b-mon').onchange = e => { st.monedaRG49 = e.target.value; if ($('#b-res').innerHTML.includes('doc-prev')) $('#b-ver49').onclick(); };
       $('#b-completo').onchange = e => { st.rg49Completo = e.target.checked; };
     }
   });

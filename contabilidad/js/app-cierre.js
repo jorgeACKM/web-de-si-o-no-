@@ -1,6 +1,34 @@
 /* Pantallas: inventario, cierre de ejercicio y saldos iniciales, libros rubricados, IRE según régimen. */
 (function () {
   'use strict';
+  // IRE Simple (Form. 501) y Resimple en el formato de las proformas
+  function rubrosIRE(reg, r, c) {
+    const L = (inc, t, cas, v, tot) => [inc, t, [[cas, v]], tot];
+    if (reg === 'SIMPLE') return [
+      { titulo: 'RUBRO 1 – DETERMINACIÓN DE LA RENTA NETA', cols: ['Importe'], filas: [
+        L('a', 'Total de ingresos del ejercicio (sin IVA)', 10, r.ingresosBrutos),
+        L('b', 'Total de egresos deducibles (sin IVA)', 11, r.egresosDeducibles),
+        L('c', 'Renta neta real (10 − 11)', 12, r.rentaReal, 1),
+        L('d', 'Ingresos para la renta presunta', 13, r.ingresosBrutos),
+        L('e', `Renta neta presunta (${c.pctRentaPresuntaSimple}% de la casilla 13)`, 14, r.rentaPresunta, 1)] },
+      { titulo: 'RUBRO 2 – LIQUIDACIÓN', cols: ['Importe'], filas: [
+        L('a', 'Base imponible (la menor entre 12 y 14)', '', r.renta, 1),
+        L('b', `Impuesto (${c.tasaIRE}%)`, '', r.impuesto, 1),
+        L('c', 'Anticipos', '', r.anticipos),
+        L('d', 'Retenciones', '', r.retenciones),
+        L('e', 'Saldo a favor del ejercicio anterior', '', r.saldoFavorAnterior),
+        L('f', r.neto >= 0 ? 'SALDO A INGRESAR' : 'SALDO A FAVOR DEL CONTRIBUYENTE', '', Math.abs(r.neto), 1)] }
+    ];
+    return [{ titulo: 'IRE RESIMPLE – LIQUIDACIÓN DEL EJERCICIO', cols: ['Importe'], filas: [
+      L('a', 'Ingresos brutos del ejercicio', '', r.ingresosBrutos),
+      L('b', 'Ingresos del ejercicio anterior', '', r.ingresosAnterior),
+      L('c', 'Cuota mensual del ejercicio', '', r.cuotaMensualActual),
+      L('d', 'Total de cuotas del ejercicio (12 meses)', '', r.cuotasDelAnio, 1),
+      L('e', 'Cuotas pagadas', '', r.pagado),
+      L('f', r.saldo >= 0 ? 'SALDO PENDIENTE' : 'PAGADO DE MÁS', '', Math.abs(r.saldo), 1),
+      L('g', 'Cuota mensual para el ejercicio siguiente', '', r.cuotaMensualSiguiente, 1)] }];
+  }
+
   const A = window.App;
   const { C, S, X, $, $$, esc, fmt, fmt2, fd, hoy, MESES, st, toast, datos, cfg, nombreCta, ctaValida, pedirArchivo, slug, cliente, render, bloqueado } = A;
   const arr = k => { const d = datos(); return d[k] || (d[k] = []); };
@@ -283,31 +311,29 @@
       <option value="RESIMPLE" ${reg === 'RESIMPLE' ? 'selected' : ''}>RESIMPLE (unipersonales hasta Gs. 80 millones, cuota fija)</option></select></label></div>`;
   A.VISTAS.f500 = {
     html() {
+      A.rubrosIRE = rubrosIRE;
       const d = datos(), reg = C.regimenIRE(d), anio = st.anio, c = cfg();
       if (reg === 'GENERAL') return `<section class="card">${selectorRegimen(reg)}</section>` + vGeneral.html();
       const ent = obj('f500')[anio] || {};
       const inp = (k, n, ph) => `<label>${n}<input class="n" data-f="${k}" value="${ent[k] !== undefined && ent[k] !== '' ? fmt(ent[k]) : ''}" placeholder="${esc(ph === undefined ? '0' : ph)}"></label>`;
-      const tabla = filas => `<table class="grid f120"><tbody>${filas.map(([t, x, cls]) => `<tr class="${cls || ''}"><td>${t}</td><td class="n">${x === null ? '' : fmt(x)}</td></tr>`).join('')}</tbody></table>`;
+      const tabla = rubros => A.htmlRubros(rubros, x => x ? `<td class="cas">${x[0]}</td><td class="n">${fmt(x[1])}</td>` : '<td class="cas vac"></td><td class="vac"></td>');
       const al = list => list.length ? `<div class="alerta">${list.map(esc).join('<br>')}</div>` : '';
       if (reg === 'SIMPLE') {
         const r = C.ireSimple(d, A.plan, anio);
         return `<section class="card">${selectorRegimen(reg)}<h2>IRE SIMPLE – ejercicio ${anio}</h2>
           <div class="acciones"><label>Ejercicio <input type="number" id="f5-anio" value="${anio}" style="width:6em"></label> <span class="muted">Del ${fd(r.desde)} al ${fd(r.hasta)}</span>
-            <button id="sp-exp">Exportar</button></div>
+            <button id="sp-exp">Descargar (PDF o Excel)</button></div>
           ${al(r.alertas)}
           <div class="form cols4">${inp('anticipos', 'Anticipos', `de la cuenta: ${fmt(r.anticipos)}`)}${inp('retenciones', 'Retenciones de IRE', `de Retenciones: ${fmt(r.retenciones)}`)}${inp('saldoFavorAnterior', 'Saldo a favor anterior')}</div>
-          ${tabla([['Cas. 10 – Total de ingresos del ejercicio (sin IVA)', r.ingresosBrutos], ['Ingresos no gravados (excluidos, Rubro 5)', r.noGravados], ['Costos y gastos contabilizados', r.egresos], ['(−) Gastos no deducibles', -r.noDeducibles], ['Cas. 11 – Total de egresos deducibles (sin IVA)', r.egresosDeducibles, 'total'],
-            ['Cas. 12 – Renta neta real (10 − 11)', r.rentaReal], ['Cas. 13 – Ingresos para la renta presunta', r.ingresosBrutos], [`Cas. 14 – Renta neta presunta (${c.pctRentaPresuntaSimple}% de la cas. 13)`, r.rentaPresunta], ['BASE IMPONIBLE (la menor entre 12 y 14)', r.renta, 'total'],
-            [`Impuesto (${c.tasaIRE}%)`, r.impuesto, 'total'], ['(−) Anticipos', -r.anticipos], ['(−) Retenciones', -r.retenciones], ['(−) Saldo a favor anterior', -r.saldoFavorAnterior], [r.neto >= 0 ? 'SALDO A INGRESAR' : 'SALDO A FAVOR', Math.abs(r.neto), 'total']])}
+          ${tabla(A.rubrosIRE(reg, r, c))}
         </section>`;
       }
       const r = C.ireResimple(d, A.plan, anio);
       return `<section class="card">${selectorRegimen(reg)}<h2>IRE RESIMPLE – ejercicio ${anio}</h2>
-        <div class="acciones"><label>Ejercicio <input type="number" id="f5-anio" value="${anio}" style="width:6em"></label> <button id="sp-exp">Exportar</button></div>
+        <div class="acciones"><label>Ejercicio <input type="number" id="f5-anio" value="${anio}" style="width:6em"></label> <button id="sp-exp">Descargar (PDF o Excel)</button></div>
         ${al(r.alertas)}
         <div class="form cols3">${inp('ingresosAnterior', 'Ingresos del ejercicio anterior', `de la contabilidad: ${fmt(r.ingresosAnterior)}`)}${inp('cuotasPagadas', 'Cuotas pagadas en el ejercicio')}</div>
-        ${tabla([['Ingresos brutos del ejercicio', r.ingresosBrutos], ['Ingresos del ejercicio anterior', r.ingresosAnterior], ['Cuota mensual del ejercicio', r.cuotaMensualActual], ['Total de cuotas del ejercicio (12 meses)', r.cuotasDelAnio, 'total'],
-          ['(−) Cuotas pagadas', -r.pagado], [r.saldo >= 0 ? 'SALDO PENDIENTE' : 'PAGADO DE MÁS', Math.abs(r.saldo), 'total'], ['Cuota mensual para el ejercicio siguiente', r.cuotaMensualSiguiente, 'total']])}
+        ${tabla(A.rubrosIRE(reg, r, c))}
       </section>`;
     },
     bind() {
@@ -317,8 +343,8 @@
       $('#f5-anio').onchange = e => { st.anio = +e.target.value; render(); };
       $$('[data-f]').forEach(i => i.onchange = () => { const e = obj('f500')[st.anio] || (obj('f500')[st.anio] = {}); if (i.value.trim() === '') delete e[i.dataset.f]; else e[i.dataset.f] = C.num(i.value); S.save(); render(); });
       $('#sp-exp').onclick = () => {
-        const filas = [...document.querySelectorAll('table.f120 tr')].map(tr => [...tr.children].map((td, i) => i ? C.num(td.textContent) : td.textContent));
-        X.descargar([{ nombre: `IRE ${reg}`, ws: X.hoja(X.encabezado(cliente(), `IRE ${reg} – EJERCICIO ${st.anio}`, 'Preliquidación').concat([['Concepto', 'Importe Gs.']], filas), { anchos: [60, 18] }) }], `IRE_${reg}_${st.anio}_${slug(cliente().razon)}.xlsx`);
+        const r = reg === 'SIMPLE' ? C.ireSimple(d, A.plan, st.anio) : C.ireResimple(d, A.plan, st.anio);
+        A.descargarFormulario(reg === 'SIMPLE' ? 501 : 'RESIMPLE', reg === 'SIMPLE' ? 'IRE Simple' : 'IRE Resimple', 'Anual', `Ejercicio ${st.anio}`, A.rubrosIRE(reg, r, cfg()), `IRE_${reg}_${st.anio}_${slug(cliente().razon)}`);
       };
     }
   };
