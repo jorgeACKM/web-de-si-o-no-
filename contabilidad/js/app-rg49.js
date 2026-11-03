@@ -9,7 +9,7 @@
     const c = cliente();
     return [['1- Contribuyente', `${c.razon || ''} – RUC ${c.ruc || ''}`], ['2- Ejercicio fiscal', `Desde ${fd(desde)} hasta ${fd(hasta)}`],
       ['3- Representante legal', c.representante || '—'], ['4- Contador', `${c.contador || '—'}${c.rucContador ? ' – RUC ' + c.rucContador : ''}`],
-      ['5- Auditor', `${c.auditor || '—'}${c.rucAuditor ? ' – RUC ' + c.rucAuditor : ''}`]];
+      ['5- Auditor', `${c.auditor || ''}${c.rucAuditor ? ' – RUC ' + c.rucAuditor : ''}`]].filter(([k, v]) => k !== '5- Auditor' || v);
   }
 
   /* ---------- Construcción de los anexos ---------- */
