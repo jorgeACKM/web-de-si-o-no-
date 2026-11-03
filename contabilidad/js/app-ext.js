@@ -128,7 +128,6 @@
       <section class="card"><h2>Cuentas corrientes y antigüedad de saldos</h2>
         <div class="acciones"><label>Cuentas de <select id="cc-tipo"><option value="CLIENTES">Clientes</option><option value="PROVEEDORES" ${tipoCC === 'PROVEEDORES' ? 'selected' : ''}>Proveedores</option></select></label>
           <label>Al <input type="date" id="cc-corte" value="${corte}"></label> <button id="cc-exp">Exportar a Excel</button></div>
-        <p class="muted">Incluye comprobantes a crédito. Los cobros/pagos, retenciones y notas de crédito se imputan al comprobante indicado y el resto a los más antiguos. Vencimiento: fecha + ${c.plazoDias} días (configurable).</p>
         <div class="scroll"><table class="grid"><thead><tr><th>RUC</th><th>Razón social</th><th>A vencer</th><th>1–30 días</th><th>31–60</th><th>61–90</th><th>+90</th><th>Anticipos</th><th>Saldo</th><th></th></tr></thead><tbody>
         ${cc.map((x, i) => `<tr><td>${esc(x.ruc)}</td><td><details><summary>${esc(x.razon)}</summary>${x.pendientes.map(p => `<div class="muted">${fd(p.fecha)} ${esc(p.numero)} · saldo ${fmt(p.saldo)} · ${p.diasVencido > 0 ? p.diasVencido + ' días vencido' : 'vence ' + fd(p.vence)}</div>`).join('')}</details></td>
           <td class="n">${fmt(x.aVencer)}</td><td class="n">${fmt(x.d30)}</td><td class="n">${fmt(x.d60)}</td><td class="n">${fmt(x.d90)}</td><td class="n ${x.mas90 ? 'err' : ''}">${fmt(x.mas90)}</td><td class="n">${fmt(-x.anticipo)}</td><td class="n"><b>${fmt(x.saldo)}</b></td>
@@ -274,7 +273,6 @@
           <label>Monto retenido ${montoInp('r-monto')}</label>
         </div>
         <div class="acciones"><button id="r-ok" class="primary">Guardar retención</button> ${perSel()} <button id="r-exp">Exportar del mes</button> <button id="r-imp-x">Importar Excel</button></div>
-        <p class="muted">Las retenciones de IVA recibidas completan solas la casilla 52 del Form. 120; las de IRE se descuentan en el Form. 500 y las de IRP en la liquidación del IRP. Cada retención genera su asiento y reduce el saldo de la cuenta corriente.</p>
         <div class="form cols4"><label>IVA recibidas <input disabled class="n" value="${fmt(tot('RECIBIDA', 'IVA'))}"></label><label>IRE recibidas <input disabled class="n" value="${fmt(tot('RECIBIDA', 'IRE'))}"></label>
           <label>IRP recibidas <input disabled class="n" value="${fmt(tot('RECIBIDA', 'IRP'))}"></label><label>Emitidas a depositar <input disabled class="n" value="${fmt(tot('EMITIDA', 'IVA') + tot('EMITIDA', 'IRE') + tot('EMITIDA', 'IRP'))}"></label></div>
         <table class="grid"><thead><tr><th>Fecha</th><th>Tipo</th><th>Impuesto</th><th>RUC</th><th>Razón social</th><th>N° retención</th><th>Factura</th><th>Monto</th><th></th></tr></thead><tbody>
@@ -324,7 +322,6 @@
           <label>Fecha de baja (opcional) <input type="date" id="bi-baja" value="${esc(b0.fechaBaja || '')}"></label>
         </div>
         <div class="acciones"><button id="bi-ok" class="primary">${ed ? 'Actualizar' : 'Agregar bien'}</button> ${ed ? '<button id="bi-cancel">Cancelar</button>' : ''}</div>
-        <p class="muted">La compra del bien se carga en Compras con la cuenta del bien. Aquí se registra para calcular la depreciación: el sistema genera solo el asiento mensual (línea recta, desde el mes de alta). Use las vidas útiles del reglamento del IRE.</p>
       </section>
       <section class="card"><h2>Cuadro de bienes de uso</h2><div class="acciones">${perSel()} <span class="muted">al ${fd(corte)}</span> <button id="bi-exp">Exportar cuadro del ejercicio</button></div>
         <table class="grid"><thead><tr><th>Descripción</th><th>Alta</th><th>Vida útil</th><th>Valor origen</th><th>Cuota mensual</th><th>Dep. acumulada</th><th>Valor neto</th><th></th></tr></thead><tbody>
@@ -368,7 +365,6 @@
         </tbody></table></section>
       <section class="card"><h2>Planilla de sueldos</h2>
         <div class="acciones">${perSel()} ${pl ? '<button id="pl-del" class="danger">Eliminar planilla</button> <button id="pl-exp">Exportar planilla</button>' : '<button id="pl-gen" class="primary">Generar planilla desde empleados activos</button>'}</div>
-        <p class="muted">IPS: aporte obrero ${c.pctIPSObrero}% y patronal ${c.pctIPSPatronal}% sobre el salario bruto; provisión de aguinaldo 1/12. El asiento del mes se genera solo (sueldos, aporte patronal y aguinaldo contra sueldos a pagar, IPS a pagar y aguinaldos a pagar). El pago se registra en "Cobros, pagos" con contrapartida Sueldos a pagar / IPS a pagar.</p>
         ${pl ? `<div class="scroll"><table class="grid"><thead><tr><th>Empleado</th><th>C.I.</th><th>Salario</th><th>Horas extra / otros</th><th>Bruto</th><th>IPS ${c.pctIPSObrero}%</th><th>Descuentos</th><th>Aguinaldo pagado</th><th>Neto a cobrar</th><th>IPS patronal</th><th>Prov. aguinaldo</th></tr></thead><tbody>
           ${pl.filas.map((f, i) => `<tr><td>${esc(f.nombre)}</td><td>${esc(f.ci)}</td><td><input class="n gs" data-pl="${i}" data-k="salario" value="${fmt(f.salario)}" size="11"></td><td><input class="n gs" data-pl="${i}" data-k="extras" value="${fmt(f.extras)}" size="10"></td>
             <td class="n">${fmt(f.bruto)}</td><td class="n">${fmt(f.ipsObrero)}</td><td><input class="n gs" data-pl="${i}" data-k="descuentos" value="${fmt(f.descuentos)}" size="10"></td><td><input class="n gs" data-pl="${i}" data-k="aguinaldo" value="${fmt(f.aguinaldo)}" size="10"></td>
@@ -414,7 +410,6 @@
       const rec = arr('recurrentes');
       const fila = () => `<tr><td><input class="rl-cta" list="dl-cuentas" size="14"></td><td><input class="rl-d n gs" size="12"></td><td><input class="rl-h n gs" size="12"></td></tr>`;
       return `<section class="card"><h2>Nuevo asiento recurrente</h2>
-        <p class="muted">Para gastos fijos (alquiler, cuotas, honorarios, seguros). Se genera solo cada mes entre las fechas indicadas, sin cargarlo de nuevo.</p>
         <div class="form cols4"><label>Concepto <input id="rc-con"></label><label>Día del mes <input id="rc-dia" type="number" min="1" max="31" value="1"></label>
           <label>Desde <input type="month" id="rc-desde" value="${st.periodo}"></label><label>Hasta (vacío = sin fin) <input type="month" id="rc-hasta"></label></div>
         <table class="grid asiento"><thead><tr><th>Cuenta</th><th>Debe</th><th>Haber</th></tr></thead><tbody id="rc-lin">${fila()}${fila()}${fila()}</tbody></table>
@@ -451,7 +446,6 @@
         <div class="acciones"><label>Año <input type="number" id="irp-anio" value="${anio}" style="width:6em"></label> <button id="irp-exp">Exportar</button></div>
         <div class="form cols3">${inp('otrosIngresos', 'Otros ingresos gravados (salarios, alquileres…)')}${inp('otrosEgresos', 'Otros gastos deducibles')}${inp('aportesIPS', 'Aportes IPS / jubilación')}
           ${inp('retenciones', 'Retenciones de IRP', `de los comprobantes: ${fmt(r.retenciones)}`)}${inp('anticipos', 'Anticipos pagados')}${inp('saldoFavorAnterior', 'Saldo a favor año anterior')}</div>
-        <p class="muted">Ingresos: ventas del año sin IVA. Gastos: compras del año con IVA incluido. Tramos (configurables en Clientes): ${esc(c.irpTramos)}. Verifique gastos deducibles, topes y tasas vigentes.</p>
         <table class="grid f120"><tbody>
           <tr><td>Ingresos por ventas/servicios (sin IVA)</td><td class="n">${fmt(r.ingresos)}</td></tr><tr><td>Otros ingresos</td><td class="n">${fmt(r.otrosIngresos)}</td></tr><tr class="total"><td>Total ingresos</td><td class="n">${fmt(r.ingresosTot)}</td></tr>
           <tr><td>Compras y gastos</td><td class="n">${fmt(r.egresos)}</td></tr><tr><td>Otros gastos y aportes</td><td class="n">${fmt(r.otrosEgresos + r.aportesIPS)}</td></tr><tr class="total"><td>Total gastos deducibles</td><td class="n">${fmt(r.egresosTot)}</td></tr>
@@ -465,7 +459,6 @@
         <div class="form cols4"><label>Fecha <input type="date" id="dv-fecha" value="${hoy()}"></label><label>Socio / accionista <input id="dv-socio"></label><label>C.I. / RUC <input id="dv-ci"></label>
           <label>Residencia <select id="dv-res"><option value="S">Residente (${c.pctIDUResidente}%)</option><option value="N">No residente (${c.pctIDUNoResidente}%)</option></select></label><label>Monto distribuido ${montoInp('dv-monto')}</label></div>
         <div class="acciones"><button id="dv-ok" class="primary">Registrar distribución</button> ${perSel()} <button id="dv-exp">Exportar liquidación del mes</button></div>
-        <p class="muted">Cada distribución genera el asiento: Resultados acumulados a Dividendos a pagar (neto) e IDU retenido a depositar.</p>
         <table class="grid"><thead><tr><th>Fecha</th><th>Socio</th><th>C.I./RUC</th><th>Residente</th><th>Monto</th><th>Tasa</th><th>IDU</th><th></th></tr></thead><tbody>
         ${liq.filas.map((f, i) => `<tr><td>${fd(f.fecha)}</td><td>${esc(f.socio)}</td><td>${esc(f.ci)}</td><td>${f.residente ? 'Sí' : 'No'}</td><td class="n">${fmt(f.monto)}</td><td class="n">${f.tasa}%</td><td class="n">${fmt(f.idu)}</td><td><button class="mini danger" data-dvr="${arr('dividendos').filter(x => x.fecha.slice(0, 7) === st.periodo)[i].id}">✕</button></td></tr>`).join('') || '<tr><td colspan="8" class="muted">Sin distribuciones en el período</td></tr>'}
         </tbody><tfoot><tr><td colspan="4">TOTAL IDU A INGRESAR</td><td class="n">${fmt(liq.base)}</td><td></td><td class="n">${fmt(liq.total)}</td><td></td></tr></tfoot></table>
@@ -521,7 +514,7 @@
         <div class="acciones"><label>Año <input type="number" id="vt-anio" value="${anio}" style="width:6em"></label> <span class="muted">RUC terminado en ${r.digito} → vence el día ${r.dia} (o el siguiente día hábil)</span> <button id="vt-exp">Exportar</button></div>
         <table class="grid"><thead><tr><th>Fecha</th><th>Obligación</th><th>Período</th><th></th></tr></thead><tbody>
         ${r.items.map(x => `<tr><td>${fd(x.fecha)}</td><td>${esc(x.obligacion)}</td><td>${esc(x.periodo)}</td><td>${estado(x.fecha)}</td></tr>`).join('')}</tbody></table>
-        <p class="muted">Calendario general según terminación del RUC (día 7 al 25). Los feriados móviles no se consideran: confirme con el calendario oficial de la DNIT de cada año.</p></section>`;
+        </section>`;
     },
     bind() {
       $('#vt-anio').onchange = e => { st.anioVto = +e.target.value; render(); };
@@ -540,7 +533,7 @@
       return `<section class="card"><h2>Cierre de períodos</h2>
         <p>${c ? `Períodos <b>cerrados hasta el ${fd(c)}</b>: no se pueden agregar, modificar ni eliminar comprobantes, asientos, cobros, retenciones ni planillas con fecha anterior o igual.` : 'No hay períodos cerrados.'}</p>
         <div class="acciones">${perSel()} <button id="ci-cerrar" class="primary">Cerrar hasta el fin de ${st.periodo}</button> ${c ? '<button id="ci-abrir" class="danger">Reabrir todos los períodos</button>' : ''}</div>
-        <p class="muted">Cierre cada mes después de presentar el Form. 120 y el registro RG 90, para que los datos declarados no cambien por error.</p></section>`;
+        </section>`;
     },
     bind() {
       bindPer();

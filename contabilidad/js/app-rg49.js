@@ -36,9 +36,9 @@
   const usdDe = (v, t) => t ? Math.round(v / t * 100) / 100 : null;
   function valores(x1, x0, usd, tc) { return usd ? [x1, usdDe(x1, tc.x1), x0, usdDe(x0, tc.x0)] : [x1, x0]; }
   function columnasComparativas(nombreCod, desde1, hasta1, hasta0, usd) {
-    const cols = [{ t: nombreCod, w: 15, tipo: 'texto' }, { t: 'Cuenta', w: usd ? 44 : 56, tipo: 'texto' }, { t: `X1 – ${fd(hasta1)}`, w: 17, tipo: 'gs' }];
+    const cols = [{ t: nombreCod, w: 15, tipo: 'texto' }, { t: 'Cuenta', w: usd ? 44 : 56, tipo: 'texto' }, { t: fd(hasta1), w: 17, tipo: 'gs' }];
     if (usd) cols.push({ t: `US$ ${fd(hasta1)}`, w: 13, tipo: 'usd' });
-    cols.push({ t: `X1-1 – ${fd(hasta0)}`, w: 17, tipo: 'gs' });
+    cols.push({ t: fd(hasta0), w: 17, tipo: 'gs' });
     if (usd) cols.push({ t: `US$ ${fd(hasta0)}`, w: 13, tipo: 'usd' });
     return cols;
   }
@@ -52,7 +52,7 @@
     const r1 = C.rg49Resultados(d, plan, h1, a), r0 = C.rg49Resultados(d, plan, h0, a);
     const usd = !!opts.usd;
     const firmas = { tipo: 'firmas' };
-    const sub = `Expresado en guaraníes${usd ? ' y dólares estadounidenses' : ''} · X1: ejercicio que cierra el ${fd(h1)} · X1-1: ejercicio anterior`;
+    const sub = `Expresado en guaraníes${usd ? ' y dólares estadounidenses' : ''}`;
     // Anexo 1
     const f1 = filasEstructura(C.RG49_BG, b1.total, b0.total, b1.extras, b0.extras, { completo: opts.completo, usd }, ['1', '2', '3'], tc);
     f1.push({ v: ['', 'TOTAL PASIVO Y PATRIMONIO NETO'].concat(valores(b1.pasivo + b1.pn, b0.pasivo + b0.pn, usd, tc)), estilo: 'gran' });
@@ -81,7 +81,7 @@
     const bloques5 = [];
     E.NOTAS.forEach(([n, t]) => {
       bloques5.push({ tipo: 'texto', titulo: `NOTA ${n} – ${t}`, parrafos: String(notasTxt[n] || '').split('\n').filter(Boolean) });
-      const tablaComp = (lista, titulo) => ({ tipo: 'tabla', titulo, columnas: [{ t: 'Código RG 49', w: 13 }, { t: 'Cuenta', w: 52 }, { t: `X1 – ${fd(h1)}`, w: 17, tipo: 'gs' }, { t: `X1-1 – ${fd(h0)}`, w: 17, tipo: 'gs' }], filas: lista.map(f => ({ v: [f.rg49 || '', `${f.codigo} ${f.nombre}`, f.x1, f.x0] })) });
+      const tablaComp = (lista, titulo) => ({ tipo: 'tabla', titulo, columnas: [{ t: 'Código RG 49', w: 13 }, { t: 'Cuenta', w: 52 }, { t: fd(h1), w: 17, tipo: 'gs' }, { t: fd(h0), w: 17, tipo: 'gs' }], filas: lista.map(f => ({ v: [f.rg49 || '', `${f.codigo} ${f.nombre}`, f.x1, f.x0] })) });
       if (n === '4' && comp.patrimoniales.length) bloques5.push(tablaComp(comp.patrimoniales));
       if (n === '5' && comp.resultados.length) bloques5.push(tablaComp(comp.resultados));
       if (n === '6' && comp.fiscales.length) bloques5.push(tablaComp(comp.fiscales.map(f => Object.assign({}, f, { nombre: `${f.nombre} (${f.nd ? 'gasto no deducible' : 'renta no gravada'})` }))));
@@ -102,7 +102,7 @@
       doc: { cliente: cliente(), titulo: 'ESTADOS FINANCIEROS – RG 49/2014', hojas: [
         anexo(1, 'Balance General', [{ tipo: 'tabla', columnas: columnasComparativas('Código', desde1, h1, h0, usd), filas: f1 }]),
         anexo(2, 'Estado de Resultados', [{ tipo: 'tabla', columnas: columnasComparativas('Código', desde1, h1, h0, usd), filas: f2 }]),
-        anexo(3, 'Estado de Flujo de Efectivo', [{ tipo: 'tabla', columnas: [{ t: 'Concepto', w: 70 }, { t: `X1 – ${fd(h1)}`, w: 18, tipo: 'gs' }, { t: `X1-1 – ${fd(h0)}`, w: 18, tipo: 'gs' }], filas: f3 }]),
+        anexo(3, 'Estado de Flujo de Efectivo', [{ tipo: 'tabla', columnas: [{ t: 'Concepto', w: 70 }, { t: fd(h1), w: 18, tipo: 'gs' }, { t: fd(h0), w: 18, tipo: 'gs' }], filas: f3 }]),
         anexo(4, 'Estado de Cambios del Patrimonio Neto', [{ tipo: 'tabla', columnas: [{ t: 'Cuentas', w: 40 }].concat(C.RG49_PN_COLS.map(t => ({ t, w: 14, tipo: 'gs' }))), filas: f4 }], 'landscape'),
         anexo(5, 'Notas a los Estados Financieros', bloques5),
         anexo(6, 'Cuadro de Revalúo y Depreciación de Bienes del Activo Fijo', [{ tipo: 'tabla', columnas: colsRev, filas: f6 }], 'landscape')
@@ -131,7 +131,6 @@
         .replace(/<button id="b-ver49"[^>]*>[^<]*<\/button>/, '<button id="b-ver49" class="primary">Ver estados RG 49 (Anexos 1 a 6)</button>')
         .replace(/<button id="b-exp49"[^>]*>[^<]*<\/button>/, '<button id="b-exp49">Descargar estados RG 49 (PDF o Excel)</button> <label class="chk"><input type="checkbox" id="b-completo" ' + (st.rg49Completo ? 'checked' : '') + '> Formato completo (incluir líneas sin saldo)</label>')
         .replace(/<details><summary>Texto de notas adicionales[\s\S]*?<\/details>/, `<details><summary>Notas a los estados financieros (Anexo 5) – ejercicio ${anio}</summary>
-          <p class="muted">Las notas 4, 5 y 6 incluyen además los cuadros de composición y las partidas con diferencia fiscal, que se arman solos.</p>
           <div class="notas-rg49">${E.NOTAS.map(([n, t]) => `<label><b>Nota ${n}.</b> ${esc(t)}<textarea data-nota="${n}" rows="${['1', '2', '3'].includes(n) ? 3 : 2}">${esc(notas[n] || '')}</textarea></label>`).join('')}</div></details>`);
     },
     bind() {
@@ -174,7 +173,7 @@
       const anio = +st.periodo.slice(0, 4), c = ((datos().coefRevaluo || {})[anio]) || '';
       return vBi.html().replace('<section class="card"><h2>Cuadro de bienes de uso</h2>', `<section class="card"><h2>Revalúo fiscal</h2>
         <div class="form cols3"><label>Coeficiente de revalúo del ejercicio ${anio} (publicado por la DNIT) <input id="bi-coef" value="${esc(String(c).replace('.', ','))}" placeholder="1,0000"></label></div>
-        <p class="muted">Se usa en el Anexo 6 de la RG 49 (cuadro de revalúo y depreciación). Cargue el coeficiente de cada ejercicio cambiando el período.</p></section>
+        </section>
         <section class="card"><h2>Cuadro de bienes de uso</h2>`);
     },
     bind() {

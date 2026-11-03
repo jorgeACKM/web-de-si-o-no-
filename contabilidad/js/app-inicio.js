@@ -112,7 +112,6 @@
           <td class="c">${x.rg90 ? '✔' : '—'}</td><td class="c">${x.cerrado ? 'cerrado' : 'abierto'}</td><td>${c.id === cli.id ? '' : `<button class="mini" data-cli="${c.id}">Trabajar</button>`}</td></tr>`; }).join('')}
         </tbody></table></div></section>
       <section class="card"><details><summary><b>Personalizar menú</b> – elija qué módulos ver</summary>
-        <p class="muted">Desmarque los módulos que no use para que no aparezcan en los menús desplegables. "Menú simple" deja solo lo esencial para la contabilidad mensual.</p>
         <div class="acciones"><button id="mn-simple">Menú simple</button> <button id="mn-todo">Mostrar todo</button></div>
         <div class="menu-cfg">${A.MENU.filter(m => m[0] !== 'Inicio').map(([m, ic, secs]) => `<div><b>${ic} ${m}</b>${secs.flatMap(x => x[1]).filter((k, i, a) => a.indexOf(k) === i).map(k => { const t = A.TABS.find(x => x[0] === k); return t ? `<label class="chk"><input type="checkbox" data-mn="${k}" ${menuActual().includes(k) ? 'checked' : ''} ${k === 'clientes' ? 'disabled' : ''}> ${t[1]}</label>` : ''; }).join('')}</div>`).join('')}</div>
       </details></section>`;

@@ -205,10 +205,8 @@
         </div>
       </section>
       ${cli ? `<section class="card"><h2>Cuentas utilizadas en los asientos automáticos</h2>
-        <p class="muted">Cada factura de compra o venta genera su asiento contable automáticamente usando estas cuentas.</p>
         <div class="form cols3">${CFG_LABELS.map(([k, n]) => `<label>${n}<input list="dl-cuentas" data-cfg="${k}" value="${esc(c[k])}"><small>${esc(nombreCta(c[k])) || '<b class="err">cuenta inexistente</b>'}</small></label>`).join('')}</div>
         <h3>Impuestos de los comprobantes por defecto</h3>
-        <p class="muted">Se aplican al cargar ventas y compras nuevas (se pueden cambiar en cada comprobante). Ejemplo: profesional independiente → IVA S, IRE N, IRP S.</p>
         <div class="form cols3">${IMPUTA_DEF.map(([k, n]) => `<label>${n}<select data-cfgt="${k}"><option value="S" ${c[k] !== 'N' && c[k] !== false && !(k === 'rg90ImputaIRP' && c[k] !== 'S') ? 'selected' : ''}>Sí</option><option value="N" ${(k === 'rg90ImputaIRP' ? c[k] !== 'S' : c[k] === 'N' || c[k] === false) ? 'selected' : ''}>No</option></select></label>`).join('')}</div>
         <h3>Parámetros del IRE (Ley 6380/2019 – verificar vigencia)</h3>
         <div class="form cols3">${PARAMS.map(([k, n]) => `<label>${n}<input type="number" step="any" data-cfg="${k}" value="${esc(c[k])}"></label>`).join('')}
@@ -610,8 +608,6 @@
       const todos = C.todosLosAsientos(d).filter(a => a.fecha && a.fecha.slice(0, 7) === st.periodo && (st.verAuto || a.origen === 'manual'));
       return `
       <section class="card"><h2>${ed ? 'Editar asiento' : 'Nuevo asiento manual'}</h2>
-        <p class="muted">Ventas y compras generan sus asientos automáticamente. Use asientos manuales para apertura, sueldos, depreciaciones, pagos, cobranzas, ajustes, etc.
-        No hace falta asiento de refundición: el sistema traslada el resultado a "Resultados acumulados" al iniciar cada ejercicio.</p>
         <div class="form cols3"><label>Fecha <input type="date" id="a-fecha" value="${esc(ed ? ed.fecha : (st.periodo === hoy().slice(0, 7) ? hoy() : C.finDeMes(st.periodo)))}"></label>
           <label>Concepto <input id="a-conc" value="${esc(ed ? ed.concepto : '')}"></label>
           <label class="chk"><input type="checkbox" id="a-cierre" ${ed && ed.cierre ? 'checked' : ''}> Asiento de refundición/cierre (se excluye de balances)</label></div>
@@ -755,10 +751,8 @@
     html() {
       const tc = datos().tiposCambio, y = st.anioTC;
       return `<section class="card"><h2>Tipos de cambio (Gs. por US$)</h2>
-        <p class="muted">Cargue el tipo de cambio de cierre de cada mes (p. ej. comprador publicado por la DNIT/BCP al último día hábil). Se usa para expresar los balances en dólares.</p>
         <div class="acciones"><label>Año <input type="number" id="tc-anio" value="${y}" style="width:6em"></label> <button id="tc-imp">Importar Excel (Período | Tipo de cambio)</button>
           <button id="tc-web">Obtener cotización referencial en línea</button> <button id="tc-fill">Completar meses vacíos con el último T.C.</button></div>
-        <p class="muted">La cotización en línea es <b>referencial</b> (mercado, no oficial). Para estados financieros y DJ use la publicada por la DNIT/BCP.</p>
         <table class="grid" style="max-width:420px"><thead><tr><th>Mes</th><th>Gs. por US$</th></tr></thead><tbody>
         ${MESES.map((m, i) => { const k = `${y}-${C.pad(i + 1)}`; return `<tr><td>${m} ${y}</td><td><input class="n" data-tc="${k}" value="${tc[k] ? fmt2(tc[k]) : ''}"></td></tr>`; }).join('')}
         </tbody></table></section>`;
@@ -812,7 +806,6 @@
           <label>T.C. período actual (Gs/US$) <input id="b-tc2" class="n" value="${fmt2(st.tc2 || tcDe(st.corte2)) || ''}"></label>
           <label>Nivel del balance <select id="b-niv">${[1, 2, 3, 4, 5, 6].map(n => `<option ${n === st.nivel ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
         </div>
-        <p class="muted">Las cuentas patrimoniales se acumulan hasta la fecha de corte; las de resultado desde el inicio del ejercicio que contiene esa fecha. Si el T.C. está vacío se toma de "Tipos de cambio" (mes de la fecha de corte).</p>
         <div class="acciones">
           <button id="b-ver4" class="primary">Ver balance por nivel</button> <button id="b-exp4">Exportar balance nivel ${st.nivel} (Gs. y US$)</button>
           <button id="b-ver49" class="primary">Ver estados RG 49 (balance, resultados, flujo, patrimonio)</button> <button id="b-exp49">Exportar estados RG 49 + notas (Excel)</button>
@@ -960,7 +953,6 @@
         <details><summary>Rubro 2: cargar acumulados de 6 meses a mano (si los meses anteriores no están en el sistema)</summary>
           <div class="form cols4">${[[160, 'Cas. 160'], [161, 'Cas. 161'], [26, 'Cas. 26'], [162, 'Cas. 162'], [163, 'Cas. 163'], [29, 'Cas. 29']].map(([n, t]) => inp('a' + n, t, `automático: ${fmt(f.k['c' + n])}`)).join('')}</div>
         </details>
-        <p class="muted">Los saldos a favor (técnico cas. 47 → 46 y financiero cas. 54 → 51) se trasladan solos al mes siguiente. Las NC recibidas de proveedores van al Rubro 1 (h–k) y las NC emitidas al Rubro 3 inc. e. El prorrateo usa el acumulado de 6 meses del Rubro 2.</p>
         ${f.rubros.map(r => `<table class="grid f120 v4"><thead><tr class="titulo"><td colspan="${2 + r.cols.length * 2}">${esc(r.titulo)}</td></tr>
           <tr><th>Inc.</th><th>Concepto</th>${r.cols.map(c => `<th colspan="2">${esc(c)}</th>`).join('')}</tr></thead><tbody>
           ${r.filas.map(([inc, txt, cel, tot]) => `<tr class="${tot ? 'total' : ''}"><td class="c">${inc}</td><td>${esc(txt)}</td>${cel.map(celda).join('')}</tr>`).join('')}</tbody></table>`).join('')}
@@ -1036,8 +1028,6 @@
           ${inp('ajustesMas', 'Otros ajustes que aumentan la renta')}
           ${inp('ajustesMenos', 'Otros ajustes que disminuyen la renta')}
         </div>
-        <p class="muted">Gastos no deducibles e ingresos no gravados se toman de las cuentas marcadas ND/NG en el plan de cuentas. Parámetros: tasa ${f.cfg.tasaIRE}%, límite de quebrantos ${f.cfg.limiteQuebrantoPct}%, donaciones ${f.cfg.limiteDonacionesPct}%, anticipos ${f.cfg.cantAnticipos} × ${f.cfg.pctAnticipo}% (editable en Clientes).
-        <b>Verifique los números de casilla en el formulario vigente de Marangatu.</b></p>
         ${f.controles.length ? `<div class="alerta"><b>Controles:</b><ul>${f.controles.map(c => `<li>${esc(c)}</li>`).join('')}</ul></div>` : '<div class="okbox">Controles de consistencia: sin observaciones.</div>'}
         <table class="grid f120"><thead><tr><th>Concepto</th><th>Importe (Gs.)</th></tr></thead><tbody>
         ${f.lineas.map(l => l.estilo === 'titulo' ? `<tr class="titulo"><td colspan="2">RUBRO ${l.rubro} – ${esc(l.concepto)}</td></tr>`

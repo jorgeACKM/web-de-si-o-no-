@@ -64,13 +64,11 @@
         <p class="muted">Sugeridos para ${anio}: ingresos gravados ${fmt(sg.c12)} (cas. 12) · egresos de la actividad ${fmt(sg.c15)} (cas. 15) · aporte patronal IPS ${fmt(sg.c19)} (cas. 19) · retenciones IRP ${fmt(sg.c41)} (cas. 41).
           Lo que escriba en una casilla reemplaza al valor sugerido; deje vacío para volver al sugerido.</p>
         ${(datos().cuentas || []).some(c => c.irp) ? '' : '<div class="alerta">El plan de cuentas de este cliente no tiene cuentas con casilla del IRP: todas las compras irán a la casilla 15. Agréguelas en Cliente → Plan de cuentas → "Agregar cuentas de IRP".</div>'}
-        <p class="muted">Solo se toman los comprobantes marcados "Imputa a: IRP". Cada compra va a la casilla de su cuenta (columna "Cas. IRP" del plan de cuentas); las demás, a la casilla 15.</p>
         ${alertasHTML(r.alertas)}${ayudaBox}
         ${A.tablaFormulario(r.rubros, EDIT_515)}
         <div class="resultado ${r.k.c51 ? 'pagar' : 'favor'}">${r.k.c51 ? `IRP a ingresar (cas. 51): <b>Gs. ${fmt(r.k.c51)}</b>` : `Saldo a favor del contribuyente (cas. 44): <b>Gs. ${fmt(r.k.c44)}</b>`} · Renta neta imponible (cas. 45): <b>Gs. ${fmt(r.k.c45)}</b></div>
       </section>
       <section class="card"><h2>Anexo – Cuadro 1: préstamos y remanente de ingresos gravados de ejercicios anteriores</h2>
-        <p class="muted">Solo si se usaron préstamos (bancos, financieras, cooperativas) o remanentes de ingresos de los 5 ejercicios anteriores para comprar al contado el inmueble para vivienda (cas. 23). Remanente: fecha 31/12 del ejercicio al que corresponde.</p>
         <table class="grid"><thead><tr><th>I – Préstamo o remanente</th><th>II – RUC entidad (sin DV)</th><th>III – Fecha</th><th>IV – Monto total</th><th>V – Utilizado en el ejercicio</th><th></th></tr></thead><tbody>
         ${pres.map((p, i) => `<tr><td><select data-pr="${i}" data-f="tipo"><option value="PRESTAMO">Préstamo obtenido</option><option value="REMANENTE" ${p && p.tipo === 'REMANENTE' ? 'selected' : ''}>Remanente de ingresos gravados</option></select></td>
           <td><input data-pr="${i}" data-f="ruc" value="${esc(p ? p.ruc : '')}" size="10"></td><td><input type="date" data-pr="${i}" data-f="fecha" value="${esc(p ? p.fecha : '')}"></td>
@@ -78,7 +76,6 @@
           <td>${p ? `<button class="mini danger" data-prx="${i}">✕</button>` : ''}</td></tr>`).join('')}
         </tbody><tfoot><tr><td colspan="4">TOTAL (cas. 102)</td><td class="n">${fmt(r.k.c102)}</td><td></td></tr></tfoot></table></section>
       <section class="card"><h2>Anexo – Cuadro 2: familiares a cargo</h2>
-        <p class="muted">Hijos y hermanos menores de edad; hijos mayores estudiando en educación superior con ingresos hasta ₲ 30.000.000 al año; padres, abuelos y suegros con ingresos hasta ₲ 30.000.000 cada uno; o personas con obligación legal de alimentos (incluidos mayores con discapacidad).</p>
         <div class="form cols3"><label>Tipo de familiar <select id="fa-tipo">${Object.entries(C.TIPOS_FAMILIAR).map(([k, n]) => `<option value="${k}">${k}) ${n}</option>`).join('')}</select></label>
           <label>Documento de identidad N° <input id="fa-ci"></label><label>&nbsp;<button id="fa-ok">Agregar familiar</button></label></div>
         <table class="grid"><thead><tr><th>Inc.</th><th>Tipo</th><th>Documento</th><th></th></tr></thead><tbody>
@@ -126,8 +123,6 @@
       const tipoOpts = rb => C.TIPOS_516[rb].map(t => `<option>${t}</option>`).join('');
       return `<section class="card"><h2>Formulario 516 – IRP Rentas y ganancias del capital (versión 2)</h2>
         <div class="acciones"><label>Ejercicio fiscal <input type="number" id="i6-anio" value="${anio}" style="width:6em"></label> <button id="i6-print" class="primary">Imprimir proforma</button> <button id="i6-exp">Exportar a Excel</button></div>
-        <p class="muted">Cargue cada operación (venta, alquiler o rescate) con su precio y su costo. El sistema hace la "planilla de cálculo auxiliar" del instructivo: calcula la renta real y la presunta (30%), toma la menor y agrupa las operaciones en los incisos que corresponden.
-          Solo se declaran las rentas que no tuvieron retención con carácter de pago único y definitivo.</p>
         ${alertasHTML(r.alertas)}
         <h3>Agregar operación</h3>
         <div class="form cols4"><label>Rubro <select id="op-rub"><option value="1">1 – Enajenación de bienes, acciones, cuotas, derechos</option><option value="2">2 – Arrendamiento de inmuebles</option><option value="3">3 – Rescate de acciones o cuotas partes</option></select></label>
@@ -201,7 +196,6 @@
         <div class="form cols4"><label>Fecha <input type="date" id="dv-fecha" value="${hoy().slice(0, 7) === st.periodo ? hoy() : C.finDeMes(st.periodo)}"></label><label>Socio / accionista <input id="dv-socio"></label><label>C.I. / RUC <input id="dv-ci"></label>
           <label>Residencia <select id="dv-res"><option value="S">Residente (${c.pctIDUResidente}%)</option><option value="N">No residente (${c.pctIDUNoResidente}%)</option></select></label><label>Monto distribuido <input id="dv-monto" class="n"></label></div>
         <div class="acciones"><button id="dv-ok" class="primary">Registrar distribución</button> <button id="dv-exp">Exportar liquidación del mes</button></div>
-        <p class="muted">Cada distribución genera el asiento: Resultados acumulados a Dividendos a pagar (neto) e IDU retenido a depositar. Período: ${st.periodo} (cámbielo arriba).</p>
         <table class="grid"><thead><tr><th>Fecha</th><th>Socio</th><th>C.I./RUC</th><th>Residente</th><th>Monto</th><th>Tasa</th><th>IDU</th><th></th></tr></thead><tbody>
         ${liq.filas.map((f, i) => `<tr><td>${fd(f.fecha)}</td><td>${esc(f.socio)}</td><td>${esc(f.ci)}</td><td>${f.residente ? 'Sí' : 'No'}</td><td class="n">${fmt(f.monto)}</td><td class="n">${f.tasa}%</td><td class="n">${fmt(f.idu)}</td><td><button class="mini danger" data-dvr="${delMes[i].id}">✕</button></td></tr>`).join('') || '<tr><td colspan="8" class="muted">Sin distribuciones en el período</td></tr>'}
         </tbody><tfoot><tr><td colspan="4">TOTAL IDU A INGRESAR</td><td class="n">${fmt(liq.base)}</td><td></td><td class="n">${fmt(liq.total)}</td><td></td></tr></tfoot></table></section>`;

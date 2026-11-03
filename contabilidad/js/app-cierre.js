@@ -39,10 +39,6 @@
           <label>Método <select id="in-met"><option value="PERIODICO">Periódico (recuentos: CMV = inv. inicial + compras − inv. final)</option><option value="PERMANENTE" ${c.inventarioMetodo === 'PERMANENTE' ? 'selected' : ''}>Permanente (kardex con costo promedio)</option></select></label>
           <label>Cuenta mercaderías <input id="in-merc" list="dl-cuentas" value="${esc(c.ctaMercaderias)}"></label>
           <label>Cuenta costo de ventas <input id="in-cmv" list="dl-cuentas" value="${esc(c.ctaCMV)}"></label></div>
-        <p class="muted">${c.inventarioMetodo === 'PERMANENTE'
-          ? 'Permanente: cargue las compras de mercadería con la cuenta Mercaderías. Cada salida del kardex genera el costo de ventas al costo promedio ponderado (asiento mensual); los ajustes van a "Diferencias de inventario".'
-          : 'Periódico: cargue las compras con la cuenta Compras de mercaderías. En cada recuento (mensual o al cierre) el sistema pasa las compras a Mercaderías y lleva la diferencia con el recuento a Costo de ventas.'}
-          Los XML de facturas electrónicas con ítems cargan solos los productos y movimientos.</p>
       </section>
       <section class="card"><h2>Productos (${prods.length})</h2>
         <div class="form cols4"><label>Código <input id="pr-cod"></label><label>Descripción <input id="pr-des"></label><label>Unidad <input id="pr-uni" placeholder="UNI, KG, LT"></label><label>Cuenta <input id="pr-cta" list="dl-cuentas" value="${esc(c.ctaMercaderias)}"></label></div>
@@ -144,7 +140,6 @@
       const liqIVA = c.liquidarIVA !== false && c.liquidarIVA !== 'N';
       return `<section class="card"><h2>Asientos de cierre del ejercicio</h2>
         <div class="acciones"><label>Ejercicio que cierra en <input type="number" id="cj-anio" value="${anio}" style="width:6em"></label> <span class="muted">Del ${fd(r.desde)} al ${fd(r.hasta)} · Régimen IRE: <b>${C.regimenIRE(d)}</b></span></div>
-        <p class="muted">Marque los ajustes a generar. Se recalculan solos si cambian los datos (no hace falta volver a generarlos). Fecha: ${fd(r.hasta)}; la reserva legal se registra el ${fd(C.addDias(r.hasta, 1))} contra resultados acumulados.</p>
         <table class="grid"><thead><tr><th></th><th>Ajuste</th><th>Importe</th></tr></thead><tbody>
           ${fila('prevision', 'Previsión para incobrables', `Saldos de clientes vencidos hace más de ${c.previsionDias} días, al ${c.previsionPct}% (se ajusta contra la previsión existente)`, 'Z1')}
           ${fila('vacaciones', 'Provisión de vacaciones', 'Por empleado según antigüedad (12, 18 o 30 días), proporcional a los meses trabajados en el ejercicio', 'Z2')}
@@ -153,10 +148,8 @@
         </tbody></table>
         <div class="acciones"><button id="cj-todo" class="primary">Marcar todos</button> <button id="cj-nada">Quitar todos</button></div>
         <h3>Liquidación mensual de IVA</h3>
-        <p><label class="chk"><input type="checkbox" id="cj-iva" ${liqIVA ? 'checked' : ''}> Generar cada mes el asiento de liquidación de IVA</label>
-          <small class="muted">Cierra IVA débito, crédito y retenciones contra "IVA a pagar" o "IVA saldo a favor" (que se compensa solo en los meses siguientes). El pago se registra en Cobros y pagos con contrapartida IVA a pagar.</small></p>
+        <p><label class="chk"><input type="checkbox" id="cj-iva" ${liqIVA ? 'checked' : ''}> Generar cada mes el asiento de liquidación de IVA</label></p>
         <h3>Asientos de apertura y cierre</h3>
-        <p class="muted">No hace falta cargarlos: los saldos pasan solos de un ejercicio al otro. El Libro Diario (pestaña Libros rubricados) los muestra como asientos de apertura, refundición y cierre.</p>
       </section>
       <section class="card"><h2>Saldos iniciales (clientes que vienen de otro sistema)</h2>
         <p class="muted">Excel con columnas <b>Código | Cuenta | Debe | Haber</b> (o <b>Código | Cuenta | Saldo</b>, positivo deudor y negativo acreedor). Se crea un asiento de saldos iniciales; si no balancea, la diferencia puede ir a la cuenta indicada.</p>
@@ -272,8 +265,7 @@
         <div class="form cols4"><label>Desde <input type="date" id="lb-desde" value="${f.desde}"></label><label>Hasta <input type="date" id="lb-hasta" value="${f.hasta}"></label>
           <label>Folio inicial (continúa la numeración del libro rubricado) <input type="number" id="lb-folio" min="1" value="${f.folio}"></label><label>Filas por hoja <input type="number" id="lb-filas" value="${f.filas || 48}"></label></div>
         <div class="acciones"><button id="lb-diario" class="primary">Libro Diario</button> <button id="lb-mayor">Libro Mayor</button> <button id="lb-inv" class="primary">Libro Inventario (al ${fd(f.hasta)})</button></div>
-        <p class="muted">Se abre una ventana con hojas A4 numeradas (Folio N°), transporte de sumas ("van" / "vienen") en el Diario, asientos de apertura, refundición y cierre, y firmas del representante legal y del contador (datos de la pestaña Clientes). Use "Imprimir / Guardar como PDF".
-          El Libro Inventario detalla cada rubro con sus cuentas, saldos de clientes y proveedores, mercaderías valorizadas y bienes de uso, y el estado de resultados.</p></section>`;
+        </section>`;
     },
     bind() {
       const leer = () => { st.libros = { desde: v('#lb-desde'), hasta: v('#lb-hasta'), folio: +v('#lb-folio') || 1, filas: +v('#lb-filas') || 48 }; return st.libros; };
@@ -304,7 +296,6 @@
             <button id="sp-exp">Exportar</button></div>
           ${al(r.alertas)}
           <div class="form cols4">${inp('anticipos', 'Anticipos', `de la cuenta: ${fmt(r.anticipos)}`)}${inp('retenciones', 'Retenciones de IRE', `de Retenciones: ${fmt(r.retenciones)}`)}${inp('saldoFavorAnterior', 'Saldo a favor anterior')}</div>
-          <p class="muted">Ingresos y egresos (sin IVA) salen de la contabilidad del ejercicio, sin ingresos NG ni gastos ND. Como indica el instructivo del Form. 501, la base imponible es la <b>menor</b> entre la renta neta real (cas. 12) y la presunta del ${c.pctRentaPresuntaSimple}% (cas. 14): en este ejercicio corresponde la <b>${r.metodo === 'REAL' ? 'real' : 'presunta'}</b>.</p>
           ${tabla([['Cas. 10 – Total de ingresos del ejercicio (sin IVA)', r.ingresosBrutos], ['Ingresos no gravados (excluidos, Rubro 5)', r.noGravados], ['Costos y gastos contabilizados', r.egresos], ['(−) Gastos no deducibles', -r.noDeducibles], ['Cas. 11 – Total de egresos deducibles (sin IVA)', r.egresosDeducibles, 'total'],
             ['Cas. 12 – Renta neta real (10 − 11)', r.rentaReal], ['Cas. 13 – Ingresos para la renta presunta', r.ingresosBrutos], [`Cas. 14 – Renta neta presunta (${c.pctRentaPresuntaSimple}% de la cas. 13)`, r.rentaPresunta], ['BASE IMPONIBLE (la menor entre 12 y 14)', r.renta, 'total'],
             [`Impuesto (${c.tasaIRE}%)`, r.impuesto, 'total'], ['(−) Anticipos', -r.anticipos], ['(−) Retenciones', -r.retenciones], ['(−) Saldo a favor anterior', -r.saldoFavorAnterior], [r.neto >= 0 ? 'SALDO A INGRESAR' : 'SALDO A FAVOR', Math.abs(r.neto), 'total']])}
@@ -315,7 +306,6 @@
         <div class="acciones"><label>Ejercicio <input type="number" id="f5-anio" value="${anio}" style="width:6em"></label> <button id="sp-exp">Exportar</button></div>
         ${al(r.alertas)}
         <div class="form cols3">${inp('ingresosAnterior', 'Ingresos del ejercicio anterior', `de la contabilidad: ${fmt(r.ingresosAnterior)}`)}${inp('cuotasPagadas', 'Cuotas pagadas en el ejercicio')}</div>
-        <p class="muted">Cuota fija mensual según los ingresos del ejercicio anterior. Tramos configurables en Clientes (verifique los montos vigentes en la DNIT): ${r.tramos.map(t => `hasta ${t.hasta === Infinity ? '∞' : fmt(t.hasta)} → ${fmt(t.cuota)}`).join(' · ')}. La DJ anual vence el 26 de febrero.</p>
         ${tabla([['Ingresos brutos del ejercicio', r.ingresosBrutos], ['Ingresos del ejercicio anterior', r.ingresosAnterior], ['Cuota mensual del ejercicio', r.cuotaMensualActual], ['Total de cuotas del ejercicio (12 meses)', r.cuotasDelAnio, 'total'],
           ['(−) Cuotas pagadas', -r.pagado], [r.saldo >= 0 ? 'SALDO PENDIENTE' : 'PAGADO DE MÁS', Math.abs(r.saldo), 'total'], ['Cuota mensual para el ejercicio siguiente', r.cuotaMensualSiguiente, 'total']])}
       </section>`;
