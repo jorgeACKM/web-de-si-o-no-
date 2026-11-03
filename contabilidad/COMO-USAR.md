@@ -28,6 +28,17 @@ Los datos quedan guardados **en ese navegador de esa PC**. Haga seguido
 automáticos quedan en `contabilidad/server/datos/`: copie esa carpeta a un disco
 externo o a la nube una vez por semana.
 
+## Cómo se trabaja día a día
+- **Inicio** muestra el mes de trabajo: ventas, compras, IVA a pagar, resultado, la lista de
+  tareas del mes (con su estado) y alertas (RUC mal escrito, duplicados, falta tipo de cambio,
+  balance que no cuadra, vencimientos de la semana). Abajo, un resumen de todos los clientes.
+- El **período** se elige una sola vez arriba y vale para todas las pantallas.
+- **Ctrl + K** (o el botón "Ir a…") busca cualquier pantalla escribiendo su nombre.
+- El menú arranca en modo simple. En **Inicio → Personalizar menú** se activan los módulos
+  avanzados (inventario, sueldos, bancos, bienes de uso, asientos recurrentes, IRP/IDU).
+- En el **Form. 120**, toque el número de una casilla para ver qué va ahí según el instructivo
+  y de dónde lo toma el sistema. **Imprimir proforma** arma la hoja para transcribir en Marangatu.
+
 ## Primeros pasos con un cliente
 1. **Clientes**: razón social, RUC, mes de cierre, representante y contador.
 2. **Plan de cuentas**: use el estándar o importe el suyo desde Excel.

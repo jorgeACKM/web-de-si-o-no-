@@ -36,6 +36,12 @@ Los datos quedan guardados en el navegador; use **Clientes → Descargar respald
 | **Cierre de períodos** | Bloquea altas, cambios y bajas con fecha dentro de los meses ya declarados. |
 | **Tipos de cambio** | Además de la carga manual: completar meses vacíos y obtener una cotización **referencial** en línea. |
 
+## Uso diario
+
+- **Inicio**: indicadores del mes, tareas con su estado, alertas automáticas y resumen de todos los clientes.
+- **Período único** en la barra superior; **Ctrl + K** para ir a cualquier pantalla; **menú simple** personalizable.
+- **Form. 120**: ayuda por casilla resumida del instructivo oficial de la DNIT y **proforma imprimible**.
+
 ## Cierre contable e inventario
 
 | Módulo | Qué hace |

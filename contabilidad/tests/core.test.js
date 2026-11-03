@@ -123,6 +123,21 @@ t('RG 90: líneas, identificación, exclusión de electrónicos y nombre de arch
   assert.strictEqual(C.rg90NombreArchivo('80000519-8', '2026-01', 3, true), '80000519_REG_2026_V0003');
 });
 
+t('Formulario 120 según instructivo: Rubro 2 con NC recibidas, compras exentas y casilla 49', () => {
+  const d = { cliente: {}, ventas: [{ id: 1, fecha: '2026-04-05', tipoDoc: 'FACTURA', g10: 1100000, exenta: 300000 }],
+    compras: [
+      { id: 2, fecha: '2026-04-06', tipoDoc: 'NOTA_CREDITO', g10: 110000, exenta: 50000 },   // NC recibida: inc. h y k
+      { id: 3, fecha: '2026-04-07', tipoDoc: 'FACTURA', exenta: 700000, afectacion: 'GRAVADA' }, // exenta vinculada a gravadas: no va al Rubro 6
+      { id: 4, fecha: '2026-04-08', tipoDoc: 'FACTURA', exenta: 200000, afectacion: 'EXENTA' }],
+    f120: { '2026-04': { anexoExportador: 999999999 } } };
+  const k = C.f120(d, '2026-04').k;
+  assert.strictEqual(k.c160, 1000000 + 100000);   // 10 + 15
+  assert.strictEqual(k.c26, 300000 + 50000);      // 12 + 17
+  assert.strictEqual(k.c62, 200000);
+  assert.strictEqual(k.c49, k.c48);               // tope: casilla 48
+  assert.strictEqual(k.c50, 0);
+});
+
 t('Balance cuadra (nivel 4 y RG49)', () => {
   const d = datos();
   const b = C.balanceComparativo(d, plan, [{ hasta: '2026-01-31', tc: 7500 }, { hasta: '2026-02-28', tc: 7400 }], 4);

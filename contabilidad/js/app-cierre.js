@@ -301,13 +301,12 @@
         const r = C.ireSimple(d, A.plan, anio);
         return `<section class="card">${selectorRegimen(reg)}<h2>IRE SIMPLE – ejercicio ${anio}</h2>
           <div class="acciones"><label>Ejercicio <input type="number" id="f5-anio" value="${anio}" style="width:6em"></label> <span class="muted">Del ${fd(r.desde)} al ${fd(r.hasta)}</span>
-            <label>Determinación de la renta <select id="sp-met"><option value="REAL">Real (ingresos − egresos)</option><option value="PRESUNTA" ${r.metodo === 'PRESUNTA' ? 'selected' : ''}>Presunta (${c.pctRentaPresuntaSimple}% de los ingresos)</option></select></label>
             <button id="sp-exp">Exportar</button></div>
           ${al(r.alertas)}
           <div class="form cols4">${inp('anticipos', 'Anticipos', `de la cuenta: ${fmt(r.anticipos)}`)}${inp('retenciones', 'Retenciones de IRE', `de Retenciones: ${fmt(r.retenciones)}`)}${inp('saldoFavorAnterior', 'Saldo a favor anterior')}</div>
-          <p class="muted">Ingresos y egresos salen de la contabilidad del ejercicio (excluye ingresos NG y gastos ND del plan de cuentas). Según el cálculo, conviene el método <b>${r.conveniente === 'REAL' ? 'real' : 'presunto'}</b>. Verifique con la normativa vigente qué opción le corresponde al contribuyente y el porcentaje de renta presunta (configurable en Clientes).</p>
-          ${tabla([['Ingresos brutos gravados', r.ingresosBrutos], ['Ingresos no gravados (excluidos)', r.noGravados], ['Costos y gastos', r.egresos], ['(−) Gastos no deducibles', -r.noDeducibles], ['Egresos deducibles', r.egresosDeducibles, 'total'],
-            ['Renta neta real (ingresos − egresos)', r.rentaReal], [`Renta neta presunta (${c.pctRentaPresuntaSimple}% de los ingresos)`, r.rentaPresunta], [`RENTA NETA (${r.metodo === 'PRESUNTA' ? 'presunta' : 'real'})`, r.renta, 'total'],
+          <p class="muted">Ingresos y egresos (sin IVA) salen de la contabilidad del ejercicio, sin ingresos NG ni gastos ND. Como indica el instructivo del Form. 501, la base imponible es la <b>menor</b> entre la renta neta real (cas. 12) y la presunta del ${c.pctRentaPresuntaSimple}% (cas. 14): en este ejercicio corresponde la <b>${r.metodo === 'REAL' ? 'real' : 'presunta'}</b>.</p>
+          ${tabla([['Cas. 10 – Total de ingresos del ejercicio (sin IVA)', r.ingresosBrutos], ['Ingresos no gravados (excluidos, Rubro 5)', r.noGravados], ['Costos y gastos contabilizados', r.egresos], ['(−) Gastos no deducibles', -r.noDeducibles], ['Cas. 11 – Total de egresos deducibles (sin IVA)', r.egresosDeducibles, 'total'],
+            ['Cas. 12 – Renta neta real (10 − 11)', r.rentaReal], ['Cas. 13 – Ingresos para la renta presunta', r.ingresosBrutos], [`Cas. 14 – Renta neta presunta (${c.pctRentaPresuntaSimple}% de la cas. 13)`, r.rentaPresunta], ['BASE IMPONIBLE (la menor entre 12 y 14)', r.renta, 'total'],
             [`Impuesto (${c.tasaIRE}%)`, r.impuesto, 'total'], ['(−) Anticipos', -r.anticipos], ['(−) Retenciones', -r.retenciones], ['(−) Saldo a favor anterior', -r.saldoFavorAnterior], [r.neto >= 0 ? 'SALDO A INGRESAR' : 'SALDO A FAVOR', Math.abs(r.neto), 'total']])}
         </section>`;
       }
@@ -327,7 +326,6 @@
       if (reg === 'GENERAL') return vGeneral.bind();
       $('#f5-anio').onchange = e => { st.anio = +e.target.value; render(); };
       $$('[data-f]').forEach(i => i.onchange = () => { const e = obj('f500')[st.anio] || (obj('f500')[st.anio] = {}); if (i.value.trim() === '') delete e[i.dataset.f]; else e[i.dataset.f] = C.num(i.value); S.save(); render(); });
-      if ($('#sp-met')) $('#sp-met').onchange = e => { const x = obj('f500')[st.anio] || (obj('f500')[st.anio] = {}); x.metodoSimple = e.target.value; S.save(); render(); };
       $('#sp-exp').onclick = () => {
         const filas = [...document.querySelectorAll('table.f120 tr')].map(tr => [...tr.children].map((td, i) => i ? C.num(td.textContent) : td.textContent));
         X.descargar([{ nombre: `IRE ${reg}`, ws: X.hoja(X.encabezado(cliente(), `IRE ${reg} – EJERCICIO ${st.anio}`, 'Preliquidación').concat([['Concepto', 'Importe Gs.']], filas), { anchos: [60, 18] }) }], `IRE_${reg}_${st.anio}_${slug(cliente().razon)}.xlsx`);

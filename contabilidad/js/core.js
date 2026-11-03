@@ -467,7 +467,14 @@
 
   // Montos de ventas del mes por casilla de Rubro 1 col. I (base imponible, sin IVA).
   C.ventasRubro1 = function (data, periodo, cfg) {
-    const r = { c10: 0, c22: 0, c150: 0, c156: 0, c151: 0, c157: 0, c12: 0, c152: 0, c153: 0, c14: 0 };
+    const r = { c10: 0, c22: 0, c150: 0, c156: 0, c151: 0, c157: 0, c12: 0, c152: 0, c153: 0, c14: 0, c15: 0, c23: 0, c154: 0, c158: 0, c155: 0, c159: 0, c17: 0 };
+    // Inc. h–k: ajustes de precios, devoluciones realizadas y descuentos obtenidos (NC recibidas de proveedores)
+    (data.compras || []).filter(c => c.fecha && c.fecha.slice(0, 7) === periodo && C.esNC(c)).forEach(c => {
+      const d = C.desglose(c);
+      r.c15 += d.base10; r.c23 += d.iva10;
+      if (C.claseDoc(c, cfg) === 'AGRO') { r.c154 += d.base5; r.c158 += d.iva5; } else { r.c155 += d.base5; r.c159 += d.iva5; }
+      r.c17 += d.exenta;
+    });
     (data.ventas || []).filter(v => v.fecha && v.fecha.slice(0, 7) === periodo && !C.esNC(v)).forEach(v => {
       const d = C.desglose(v), agro = C.claseDoc(v, cfg) === 'AGRO';
       r.c10 += d.base10; r.c22 += d.iva10;
@@ -489,7 +496,6 @@
 
     // RUBRO 1 – Enajenaciones del período (+ NC recibidas por compras: ajustes que aumentan el débito)
     Object.assign(k, C.ventasRubro1(data, periodo, cfg));
-    k.c15 = 0; k.c23 = 0; k.c154 = 0; k.c158 = 0; k.c155 = 0; k.c159 = 0; k.c17 = 0;
     // RUBRO 3 – compras
     k.c32 = 0; k.c35 = 0; k.c38 = 0; k.c33 = 0; k.c36 = 0; k.c39 = 0; k.c34 = 0; k.c37 = 0; k.c42 = 0;
     let mix10 = 0, mix5 = 0;
@@ -498,20 +504,19 @@
 
     (data.compras || []).filter(enMes).forEach(c => {
       const d = C.desglose(c);
-      if (C.esNC(c)) { // devoluciones realizadas / descuentos obtenidos
-        k.c15 += d.base10; k.c23 += d.iva10;
-        if (C.claseDoc(c, cfg) === 'AGRO') { k.c154 += d.base5; k.c158 += d.iva5; } else { k.c155 += d.base5; k.c159 += d.iva5; }
-        k.c17 += d.exenta;
-        return;
-      }
-      if (c.afectacion === 'EXENTA') { k.c59 += d.base10; k.c65 += d.iva10; k.c60 += d.base5; k.c66 += d.iva5; k.c62 += d.exenta; return; }
-      if (c.afectacion === 'MIXTA') { k.c33 += d.base5; k.c36 += d.base10; k.c39 += d.iva; mix10 += d.iva10; mix5 += d.iva5; k.c62 += d.exenta; return; }
-      k.c32 += d.base5; k.c35 += d.base10; k.c38 += d.iva; k.c62 += d.exenta;
+      if (C.esNC(c)) return; // ya consideradas en el Rubro 1 inc. h–k
+      // Rubro 6 inc. c/d: compras exentas (incluidas autofacturas) vinculadas a operaciones exoneradas.
+      // Por defecto solo las de afectación "exentas" (instructivo); opcionalmente todas en la casilla 62.
+      const exAExon = c.afectacion === 'EXENTA' || cfg.f120ExentasTodas === true || cfg.f120ExentasTodas === 'S';
+      if (c.afectacion === 'EXENTA') { k.c59 += d.base10; k.c65 += d.iva10; k.c60 += d.base5; k.c66 += d.iva5; }
+      else if (c.afectacion === 'MIXTA') { k.c33 += d.base5; k.c36 += d.base10; k.c39 += d.iva; mix10 += d.iva10; mix5 += d.iva5; }
+      else { k.c32 += d.base5; k.c35 += d.base10; k.c38 += d.iva; }
+      if (exAExon) { if (c.exportacionVinculada) k.c61 += d.exenta; else k.c62 += d.exenta; }
     });
     // NC emitidas (ajustes por ventas ya declaradas): Rubro 3 inc. e; exentas en Rubro 6 inc. e
     (data.ventas || []).filter(v => enMes(v) && C.esNC(v)).forEach(v => {
       const d = C.desglose(v);
-      k.c34 += d.base5; k.c37 += d.base10; k.c42 += d.iva; k.c63 += d.exenta + d.exportacion;
+      k.c34 += d.base5; k.c37 += d.base10; k.c42 += d.iva; k.c63 += d.exenta;
     });
 
     k.c18 = k.c10 + k.c150 + k.c151 + k.c12 + k.c152 + k.c153 + k.c14 + k.c15 + k.c154 + k.c155 + k.c17;
@@ -521,9 +526,10 @@
     // RUBRO 2 – acumulado de los últimos 6 meses (incluido el período); se puede cargar a mano.
     const r1 = p => C.ventasRubro1(data, p, cfg);
     const acum = (cas, fn) => vacio(ent['a' + cas]) ? sumaMeses(periodo, 6, p => fn(r1(p))) : C.r0(ent['a' + cas]);
-    k.c160 = acum(160, x => x.c10 + x.c151);
-    k.c161 = acum(161, x => x.c150);
-    k.c26 = acum(26, x => x.c12);
+    // Instructivo: 160 = Σ(10+151+15+155); 161 = Σ(150+154); 26 = Σ(12+17) de los últimos 6 meses
+    k.c160 = acum(160, x => x.c10 + x.c151 + x.c15 + x.c155);
+    k.c161 = acum(161, x => x.c150 + x.c154);
+    k.c26 = acum(26, x => x.c12 + x.c17);
     k.c27 = k.c160 + k.c161 + k.c26;
     k.c162 = acum(162, x => x.c152);
     k.c163 = acum(163, x => x.c153);
@@ -556,7 +562,7 @@
     k.c167 = Math.min(C.r0(ent.remision), k.c166);
     k.c47 = k.c166 - k.c167;
     k.c48 = k.c44 > k.c45 + k.c46 ? k.c44 - k.c45 - k.c46 : 0;
-    k.c49 = C.r0(ent.anexoExportador);
+    k.c49 = Math.min(C.r0(ent.anexoExportador), k.c48); // solo si hay saldo a favor del fisco (cas. 48), no trasladable
     k.c168 = C.r0(ent.deduccionDiscapacidad);
     k.c50 = Math.max(0, k.c48 - k.c49 - k.c168);
 

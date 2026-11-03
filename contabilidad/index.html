@@ -9,9 +9,13 @@
 <body>
   <header class="topbar">
     <div class="brand">ContaPY <small>contabilidad de clientes</small></div>
-    <label class="cliente-sel">Cliente:
-      <select id="selCliente"></select>
-    </label>
+    <div class="topsel">
+      <label class="cliente-sel">Cliente:
+        <select id="selCliente"></select>
+      </label>
+      <label class="cliente-sel">Período <input type="month" id="selPeriodo"></label>
+      <button id="btnBuscar" type="button" title="Ir a una pantalla (Ctrl+K)">🔎 Ir a… <kbd>Ctrl K</kbd></button>
+    </div>
   </header>
   <nav id="tabs" class="tabs"></nav>
   <main id="main"></main>
@@ -24,10 +28,12 @@
   <script src="js/core.js"></script>
   <script src="js/core-ext.js"></script>
   <script src="js/core-cierre.js"></script>
+  <script src="js/ayuda-formularios.js"></script>
   <script src="js/store.js"></script>
   <script src="js/excel.js"></script>
   <script src="js/app.js"></script>
   <script src="js/app-ext.js"></script>
   <script src="js/app-cierre.js"></script>
+  <script src="js/app-inicio.js"></script>
 </body>
 </html>

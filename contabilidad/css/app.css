@@ -107,3 +107,31 @@ section.card details summary { cursor: pointer; }
 .sync { font-size: 11px; padding: 2px 6px; border-radius: 3px; background: rgba(255, 255, 255, .15); }
 .sync.err { background: #b23b3b; }
 .sync.pend { background: #8a5a00; }
+
+/* ---- Inicio y usabilidad ---- */
+.topsel { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.topsel input[type=month] { padding: 4px; margin-left: 6px; }
+#btnBuscar { background: rgba(255,255,255,.12); color: #fff; border-color: rgba(255,255,255,.3); }
+#btnBuscar kbd { background: rgba(255,255,255,.2); border: 0; color: #fff; }
+.hero { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.hero h2 { font-size: 22px; margin: 0; }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.kpi { border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; display: flex; flex-direction: column; gap: 2px; background: #fafcfc; }
+.kpi span { font-size: 12px; color: var(--muted); } .kpi b { font-size: 20px; font-variant-numeric: tabular-nums; } .kpi small { color: var(--muted); }
+.kpi.pagar { border-color: #e4b4b4; background: #fdf3f3; } .kpi.favor { border-color: #a9d8c2; background: var(--ok-bg); }
+.dos-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; } .dos-col > .card { margin-bottom: 16px; }
+.barra-prog { height: 6px; background: var(--head); border-radius: 3px; overflow: hidden; margin-bottom: 8px; } .barra-prog i { display: block; height: 100%; background: var(--primary); }
+ul.tareas, ul.alertas { list-style: none; padding: 0; margin: 0; }
+ul.tareas li, ul.alertas li { display: flex; align-items: center; gap: 10px; padding: 7px 4px; border-bottom: 1px solid #edf0f3; }
+ul.tareas li .t, ul.alertas li .t { flex: 1; } ul.tareas small { display: block; color: var(--muted); }
+.chk-ic { width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--head); color: var(--muted); font-size: 12px; }
+ul.tareas li.ok .chk-ic { background: var(--primary); color: #fff; } ul.tareas li.ok .t { color: var(--muted); text-decoration: line-through; }
+ul.alertas li.error .t { color: var(--danger); } ul.alertas li.aviso .t { color: var(--warn); }
+ol.pasos li { margin: 6px 0; } .bienvenida { text-align: center; padding: 40px; }
+.menu-cfg { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 16px; } .menu-cfg > div { display: flex; flex-direction: column; gap: 3px; }
+.buscador-fondo { position: fixed; inset: 0; background: rgba(20, 40, 35, .45); z-index: 30; display: flex; justify-content: center; align-items: flex-start; padding-top: 12vh; }
+.buscador { width: min(520px, 92vw); } .buscador input { width: 100%; font-size: 16px; padding: 10px; }
+.buscador ul { list-style: none; padding: 0; margin: 8px 0; max-height: 50vh; overflow: auto; } .buscador li { padding: 7px 10px; border-radius: 5px; cursor: pointer; } .buscador li.sel, .buscador li:hover { background: var(--sel); }
+td.cas.ayuda { cursor: help; text-decoration: underline dotted; } td.cas.activa { background: #ffe9a8; color: #000; }
+.ayuda-cas { position: sticky; top: 0; z-index: 2; background: #fffbe8; border: 1px solid #f0d49b; border-radius: 6px; padding: 8px 12px; margin: 8px 0; max-width: 960px; }
+@media (max-width: 900px) { .kpis, .dos-col, .menu-cfg { grid-template-columns: 1fr 1fr; } }

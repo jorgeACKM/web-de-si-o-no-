@@ -317,8 +317,9 @@
     const egresosDeducibles = Math.round(x.egresos - x.noDeducibles);
     const rentaReal = Math.max(0, ingresosBrutos - egresosDeducibles);
     const rentaPresunta = Math.round(ingresosBrutos * cfg.pctRentaPresuntaSimple / 100);
-    const metodo = ent.metodoSimple || cfg.metodoSimple || 'REAL';
-    const renta = metodo === 'PRESUNTA' ? rentaPresunta : rentaReal;
+    // Form. 501 (instructivo): la base imponible es la MENOR entre la renta neta real (cas. 12) y la presunta (cas. 14)
+    const metodo = rentaPresunta < rentaReal ? 'PRESUNTA' : 'REAL';
+    const renta = Math.min(rentaReal, rentaPresunta);
     const impuesto = Math.round(renta * cfg.tasaIRE / 100);
     const debe = (cta, r) => { let t = 0; C.todosLosAsientos(data).forEach(a => { if (a.fecha >= r.desde && a.fecha <= r.hasta && !a.cierre && a.origen !== 'cierre') a.lineas.forEach(l => { if (l.cuenta === cta) t += l.debe; }); }); return Math.round(t); };
     const anticipos = ent.anticipos !== undefined && ent.anticipos !== '' ? C.r0(ent.anticipos) : debe(cfg.ctaAnticiposIRE, x);

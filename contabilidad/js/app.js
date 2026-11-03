@@ -58,7 +58,16 @@
     ['ventas', 'Ventas', 'Carga'], ['compras', 'Compras', 'Carga'], ['asientos', 'Asientos y mayor', 'Carga'],
     ['balances', 'Balances', 'Informes'],
     ['f120', 'Form. 120 – IVA', 'Impuestos'], ['f500', 'Form. 500 – IRE', 'Impuestos'], ['rg90', 'RG 90 Marangatu', 'Impuestos']];
-  const GRUPOS = ['Datos', 'Carga', 'Tesorería', 'Personal', 'Informes', 'Impuestos', 'Control'];
+  const GRUPOS = ['Inicio', 'Datos', 'Carga', 'Tesorería', 'Personal', 'Informes', 'Impuestos', 'Control'];
+  // Menú simple: módulos que se muestran por defecto (el resto se activa en Inicio → Personalizar menú)
+  const ESENCIALES = ['inicio', 'clientes', 'plan', 'tc', 'ventas', 'compras', 'importar', 'asientos', 'balances', 'f120', 'f500', 'rg90', 'retenciones', 'vencimientos', 'cierre', 'cierreej', 'libros'];
+  const KEY_MENU = 'contapy_menu';
+  function tabsVisibles() {
+    let m = null; try { m = JSON.parse(localStorage.getItem(KEY_MENU)); } catch (e) { /* sin almacenamiento */ }
+    const vis = new Set(Array.isArray(m) ? m : ESENCIALES);
+    vis.add('inicio'); vis.add('clientes');
+    return TABS.filter(t => vis.has(t[0]) || t[0] === st.tab);
+  }
 
   let renderizando = false;
   function render() {
@@ -76,7 +85,9 @@
       ? db.clientes.map(c => `<option value="${c.id}" ${c.id === db.activo ? 'selected' : ''}>${esc(c.razon)} (${esc(c.ruc)})</option>`).join('')
       : '<option value="">— cree un cliente —</option>';
     if (!S.cliente()) st.tab = 'clientes';
-    $('#tabs').innerHTML = GRUPOS.map(g => { const ts = TABS.filter(t => t[2] === g); return ts.length ? `<span class="grupo"><span class="glabel">${g}</span>${ts.map(([k, n]) => `<button data-tab="${k}" class="${st.tab === k ? 'active' : ''}" ${!S.cliente() && k !== 'clientes' ? 'disabled' : ''}>${n}</button>`).join('')}</span>` : ''; }).join('');
+    const ps = $('#selPeriodo'); if (ps && ps.value !== st.periodo) ps.value = st.periodo;
+    const visibles = tabsVisibles();
+    $('#tabs').innerHTML = GRUPOS.map(g => { const ts = visibles.filter(t => t[2] === g); return ts.length ? `<span class="grupo"><span class="glabel">${g}</span>${ts.map(([k, n]) => `<button data-tab="${k}" class="${st.tab === k ? 'active' : ''}" ${!S.cliente() && k !== 'clientes' ? 'disabled' : ''}>${n}</button>`).join('')}</span>` : ''; }).join('');
     const v = VISTAS[st.tab];
     $('#main').innerHTML = v.html();
     if (v.bind) v.bind();
@@ -1047,7 +1058,7 @@
   /* ---------- contexto para módulos adicionales (app-ext.js) ---------- */
   window.App = {
     C, S, X, PD, $, $$, esc, fmt, fmtZ, fmt2, fd, hoy, MESES, TIPOS_DOC, st, toast, datos, cfg, refrescarPlan, nombreCta, ctaValida,
-    pedirArchivo, slug, cliente, render, bloqueado, VISTAS, TABS,
+    pedirArchivo, slug, cliente, render, bloqueado, VISTAS, TABS, GRUPOS, ESENCIALES, KEY_MENU,
     get plan() { return plan; },
     registrar(clave, nombre, grupo, vista, despuesDe) {
       VISTAS[clave] = vista;
@@ -1062,7 +1073,8 @@
   if (S.iniciar) await S.iniciar();
   S.load();
   refrescarPlan();
-  if (S.cliente()) st.tab = 'ventas';
+  if (S.cliente()) st.tab = VISTAS.inicio ? 'inicio' : 'ventas';
+  if ($('#selPeriodo')) $('#selPeriodo').onchange = e => { if (e.target.value) { st.periodo = e.target.value; st.editId = null; render(); } };
   $('#tabs').addEventListener('click', e => { const b = e.target.closest('button[data-tab]'); if (b && !b.disabled) { st.tab = b.dataset.tab; st.editId = null; render(); } });
   $('#selCliente').onchange = e => { if (e.target.value) { S.db().activo = e.target.value; S.save(); refrescarPlan(); st.editId = null; st.asientoEdit = null; render(); } };
   render();
