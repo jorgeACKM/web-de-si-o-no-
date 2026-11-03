@@ -73,6 +73,66 @@
     64: ['IVA costo o gasto deducible en IRE o IRP: 65 + 66 + (39 − 164) y, para exportadores, casillas 181 y 217.', 'Cálculo automático.'],
     170: ['IVA crédito remitido al fisco (casilla 167): costo o gasto NO deducible en IRE o IRP.', 'Igual a la casilla 167.']
   };
-  root.AyudaFormularios = { F120 };
+
+  const F515 = {
+    10: ['Ingresos exonerados: aguinaldo exigido por el Código del Trabajo, indemnizaciones por despido al mínimo legal, jubilaciones y pensiones graciables o no contributivas, becas del Gobierno en el exterior.', 'Dato a cargar.'],
+    12: ['Ingresos gravados del ejercicio (Arts. 62 y 63 de la Ley y 51 a 54 del Anexo del Decreto 3.184/2019), sin IVA ni aportes del trabajador a la seguridad social: honorarios, sueldos, horas extras, bonificaciones, dietas, comisiones, etc.', 'Sugerido: ventas del año sin IVA del cliente (puede reemplazarlo).'],
+    11: ['Ingresos exonerados percibidos como padres, tutores o curadores por rentas de hijos o personas bajo tutela.', 'Dato a cargar.'],
+    13: ['Ingresos gravados percibidos como padres, tutores o curadores.', 'Dato a cargar.'],
+    14: ['Total de ingresos brutos gravados: 12 + 13.', 'Cálculo automático.'],
+    15: ['Egresos directamente relacionados con la actividad gravada (Art. 64 de la Ley), documentados.', 'Sugerido: compras del año sin IVA (más el IVA de compras para operaciones exentas).'],
+    16: ['Egresos personales y de familiares a cargo en el país: alimentación, vestimenta, salud, educación, alquiler y mantenimiento de la vivienda, muebles, electrodomésticos, esparcimiento; incluye cuotas e intereses del inmueble para vivienda (num. 1 Art. 66).', 'Dato a cargar (del libro de egresos).'],
+    17: ['Egresos personales y de familiares en el exterior, exclusivamente salud y educación (Art. 56 del Anexo).', 'Dato a cargar.'],
+    18: ['Adquisición de un autovehículo, una vez cada 3 años (num. 3 Art. 64 de la Ley).', 'Dato a cargar.'],
+    19: ['Aporte patronal a la seguridad social a favor del trabajador (num. 5 Art. 64).', 'Sugerido: aporte patronal IPS de las planillas del año.'],
+    20: ['Aporte a un sistema privado de seguridad social del prestador independiente (num. 5 Art. 64).', 'Dato a cargar.'],
+    21: ['Cuotas, aportes, diezmos y donaciones al Estado, municipalidades, entidades religiosas, asociaciones, fundaciones, clubes, sindicatos, bomberos. Hasta el 5% de la casilla 14.', 'Dato a cargar; el sistema aplica el tope del 5%.'],
+    22: ['Sumatoria de las casillas 15 a 21. Sus resultados negativos no se compensan ni arrastran.', 'Cálculo automático.'],
+    23: ['Adquisición al contado de un inmueble para la vivienda cada 5 años, incluida construcción, remodelación o refacción (num. 2 Art. 66). Sus resultados negativos pueden arrastrarse.', 'Dato a cargar.'],
+    24: ['Total de egresos deducibles: 22 + 23.', 'Cálculo automático.'],
+    25: ['Ingresos brutos gravados (casilla 14).', 'Cálculo automático.'],
+    26: ['Egresos deducidos (casilla 22) limitados al monto de la casilla 25.', 'Cálculo automático.'],
+    27: ['Resultado después de egresos deducibles: 25 − 26.', 'Cálculo automático.'],
+    28: ['Egreso por inmueble para vivienda (casilla 23), solo hasta el monto de la 27.', 'Cálculo automático.'],
+    29: ['Subtotal de renta neta imponible antes de pérdidas de ejercicios anteriores: 27 − 28.', 'Cálculo automático.'],
+    30: ['Préstamos o remanentes de ingresos gravados (casilla 102 del Anexo), solo cuando el egreso por inmueble supera la casilla 27.', 'Del Anexo, cuadro 1.'],
+    31: ['Saldo de egresos por inmueble no cubierto con ingresos, préstamos ni remanentes: pérdida no arrastrable.', 'Cálculo automático.'],
+    32: ['Pérdida por inmueble que superó la renta bruta pero fue cubierta con préstamos o remanentes: arrastrable.', 'Cálculo automático.'],
+    33: ['Pérdida arrastrable del ejercicio (casilla 32).', 'Cálculo automático.'],
+    34: ['Pérdida arrastrable por inmueble del ejercicio anterior.', 'Se toma de la casilla 39 del año anterior si está cargado; si no, cárguela.'],
+    35: ['Acumulado: 33 + 34.', 'Cálculo automático.'],
+    36: ['Porción que se excluye por superar los 5 años de arrastre (Art. 66). La calcula el contribuyente.', 'Dato a cargar.'],
+    37: ['Saldo compensable: 35 − 36.', 'Cálculo automático.'],
+    38: ['Pérdida de ejercicios anteriores que se compensa con la renta neta (casilla 29), limitada al 20% de esa renta.', 'Cálculo automático con el tope del 20% (puede indicar un monto menor).'],
+    39: ['Saldo de pérdida a trasladar al ejercicio siguiente (casilla 34): 37 − 38.', 'Cálculo automático.'],
+    45: ['Renta neta imponible: 29 − 38.', 'Cálculo automático.'],
+    46: ['Impuesto al 8% por la porción de la renta neta hasta ₲ 50.000.000 (Art. 69 de la Ley).', 'Cálculo automático.'],
+    47: ['Impuesto al 9% por la porción desde ₲ 50.000.001 hasta ₲ 150.000.000.', 'Cálculo automático.'],
+    48: ['Impuesto al 10% por la porción mayor a ₲ 150.000.000.', 'Cálculo automático.'],
+    40: ['Saldo a favor del ejercicio anterior (casilla 44 de la DJ anterior).', 'Se toma del año anterior si está cargado.'],
+    41: ['Retenciones a cuenta del IRP practicadas en el ejercicio por agentes de retención.', 'Suma de las retenciones de IRP cargadas en "Retenciones".'],
+    42: ['Percepciones a cuenta del IRP practicadas en el ejercicio.', 'Dato a cargar.'],
+    49: ['Multa por presentación fuera de plazo (Art. 176 de la Ley 125/1991).', 'Dato a cargar solo si corresponde.'],
+    43: ['Subtotal columna I: 40 + 41 + 42.', 'Cálculo automático.'],
+    50: ['Subtotal columna II: 46 + 47 + 48 + 49.', 'Cálculo automático.'],
+    44: ['Saldo a favor del contribuyente (43 − 50), trasladable al ejercicio siguiente.', 'Cálculo automático.'],
+    51: ['Saldo a ingresar a favor del fisco (50 − 43).', 'Cálculo automático. Es el importe a pagar.'],
+    102: ['Total de préstamos o remanentes utilizados en el ejercicio (columna V del cuadro 1 del Anexo).', 'Suma del cuadro 1.']
+  };
+  const F516 = {
+    76: ['Total del Rubro 1 (enajenación de bienes muebles, inmuebles a plazo, acciones, cuotas de capital, cesión de derechos): en V2, suma de las casillas 62 al 75 y 145 al 147.', 'Suma de la renta neta imponible de las operaciones del Rubro 1.'],
+    107: ['Total del Rubro 2 (arrendamiento y subarrendamiento de inmuebles).', 'Suma de las operaciones del Rubro 2.'],
+    120: ['Total del Rubro 3 (rescate de acciones o cuotas partes no alcanzado por el IDU): suma de las casillas 116 al 119.', 'Suma de las operaciones del Rubro 3.'],
+    122: ['70% del monto percibido por regalías con aprovechamiento parcial en el país y en el exterior (Art. 19 del Anexo).', 'Se calcula el 70% del monto que cargue.'],
+    124: ['Incorporación de dinero sin contraprestación (Art. 39 del Anexo).', 'Dato a cargar.'],
+    126: ['Indemnizaciones en dinero de seguros de vida, prestaciones vitalicias y temporarias (Art. 12 del Anexo).', 'Dato a cargar.'],
+    127: ['Otros conceptos no señalados, incluido cualquiera sobre el que no se practicó la retención del IRP.', 'Dato a cargar.'],
+    128: ['Total del Rubro 4: 122 + 124 + 126 + 127.', 'Cálculo automático.'],
+    129: ['Total de renta neta imponible: 76 + 107 + 120 + 128.', 'Cálculo automático.'],
+    130: ['Impuesto: 8% sobre la casilla 129 (Art. 60 de la Ley).', 'Cálculo automático.'],
+    131: ['Multa por presentación fuera de plazo.', 'Dato a cargar solo si corresponde.'],
+    132: ['Total: 130 + 131.', 'Cálculo automático.']
+  };
+  root.AyudaFormularios = { F120, F515, F516 };
   if (typeof module !== 'undefined') module.exports = root.AyudaFormularios;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -60,14 +60,73 @@
     ['f120', 'Form. 120 – IVA', 'Impuestos'], ['f500', 'Form. 500 – IRE', 'Impuestos'], ['rg90', 'RG 90 Marangatu', 'Impuestos']];
   const GRUPOS = ['Inicio', 'Datos', 'Carga', 'Tesorería', 'Personal', 'Informes', 'Impuestos', 'Control'];
   // Menú simple: módulos que se muestran por defecto (el resto se activa en Inicio → Personalizar menú)
-  const ESENCIALES = ['inicio', 'clientes', 'plan', 'tc', 'ventas', 'compras', 'importar', 'asientos', 'balances', 'f120', 'f500', 'rg90', 'retenciones', 'vencimientos', 'cierre', 'cierreej', 'libros'];
-  const KEY_MENU = 'contapy_menu';
+  const ESENCIALES = ['inicio', 'clientes', 'plan', 'tc', 'ventas', 'compras', 'importar', 'asientos', 'balances', 'f120', 'f500', 'f515', 'f516', 'idu', 'rg90', 'retenciones', 'vencimientos', 'cierre', 'cierreej', 'libros'];
+  const KEY_MENU = 'contapy_menu_ocultos'; // módulos ocultados por el usuario (los nuevos aparecen siempre)
   function tabsVisibles() {
     let m = null; try { m = JSON.parse(localStorage.getItem(KEY_MENU)); } catch (e) { /* sin almacenamiento */ }
-    const vis = new Set(Array.isArray(m) ? m : ESENCIALES);
-    vis.add('inicio'); vis.add('clientes');
-    return TABS.filter(t => vis.has(t[0]) || t[0] === st.tab);
+    const ocultos = new Set(Array.isArray(m) ? m : []); ocultos.delete('inicio'); ocultos.delete('clientes');
+    return TABS.filter(t => !ocultos.has(t[0]) || t[0] === st.tab);
   }
+
+  /* ---------- Menús desplegables: por operación y por impuesto ---------- */
+  const MENU = [
+    ['Inicio', '🏠', [['', ['inicio']]]],
+    ['Cliente', '🏢', [['Datos y configuración', ['clientes', 'plan', 'tc']]]],
+    ['Operaciones', '🧾', [['Comprobantes', ['ventas', 'compras', 'importar']], ['Contabilidad', ['asientos', 'recurrentes']], ['Existencias y activo fijo', ['inventario', 'bienes']], ['Personal', ['sueldos']]]],
+    ['Tesorería', '💵', [['Cobros, pagos y bancos', ['tesoreria', 'bancos']]]],
+    ['Impuestos', '🏛️', [['IVA', ['f120', 'rg90']], ['IRE – Renta empresarial', ['f500']], ['IRP – Renta personal', ['f515', 'f516']], ['IDU – Dividendos', ['idu']], ['Para todos los impuestos', ['retenciones', 'vencimientos']]]],
+    ['Informes', '📊', [['Estados contables', ['balances']], ['Libros', ['libros', 'asientos']]]],
+    ['Cierre', '🔒', [['Mensual', ['cierre']], ['Anual', ['cierreej']]]]
+  ];
+  const DESC = {
+    inicio: 'Resumen del mes, tareas y alertas', clientes: 'Datos, parámetros y respaldos', plan: 'Cuentas, rubros RG 49, importar de Excel', tc: 'Cotización US$ de cada mes',
+    ventas: 'Carga rápida, Excel, libro IVA ventas', compras: 'Carga rápida, cuenta sugerida, libro IVA compras', importar: 'XML de facturas electrónicas, RG 90, Excel de Marangatu',
+    asientos: 'Asientos manuales, libro diario y mayor', recurrentes: 'Alquileres, cuotas y gastos fijos mensuales', inventario: 'Productos, kardex, costo de ventas', bienes: 'Activo fijo y depreciaciones',
+    sueldos: 'Empleados, planilla, IPS y aguinaldo', tesoreria: 'Cobros, pagos y antigüedad de saldos', bancos: 'Importar extracto y conciliar',
+    f120: 'Formulario 120 mensual con casillas', rg90: 'Archivo de comprobantes para Marangatu', f500: 'General (500), Simple o Resimple', f515: 'Servicios personales: honorarios y sueldos',
+    f516: 'Rentas del capital: ventas, alquileres, rescates', idu: 'Distribución de utilidades y retención', retenciones: 'Retenciones de IVA, IRE e IRP', vencimientos: 'Calendario según terminación del RUC',
+    balances: 'Balance nivel 4, RG 49, flujo y patrimonio', libros: 'Diario, mayor e inventario foliados', cierre: 'Bloquear meses ya declarados', cierreej: 'Previsiones, IRE, reserva legal, saldos iniciales'
+  };
+  // Ubicación de una pantalla en el menú: [menú, sección]
+  function ubicacion(k) { for (const [m, , secs] of MENU) for (const [sec, items] of secs) if (items.includes(k)) return [m, sec]; return ['Más', '']; }
+  function dibujarMenu() {
+    const vis = new Set(tabsVisibles().map(t => t[0])), nombre = {}; TABS.forEach(t => { nombre[t[0]] = t[1]; });
+    const sinCliente = !S.cliente();
+    const enMenu = new Set(MENU.flatMap(m => m[2].flatMap(x => x[1])));
+    const otros = TABS.map(t => t[0]).filter(k => !enMenu.has(k) && vis.has(k));
+    const menus = MENU.concat(otros.length ? [['Más', '➕', [['Otros', otros]]]] : []);
+    const mAct = ubicacion(st.tab)[0];
+    $('#tabs').innerHTML = menus.map(([m, ic, secs], i) => {
+      const its = secs.map(([sec, items]) => [sec, items.filter(k => nombre[k] && vis.has(k))]).filter(x => x[1].length);
+      if (!its.length) return '';
+      const btn = (k, desc) => `<button data-tab="${k}" class="${st.tab === k ? 'active' : ''}" ${sinCliente && k !== 'clientes' && k !== 'inicio' ? 'disabled' : ''}>${desc ? `<b>${esc(nombre[k])}</b><small>${esc(DESC[k] || '')}</small>` : `${ic} ${esc(nombre[k])}`}</button>`;
+      if (its.length === 1 && its[0][1].length === 1) return `<div class="menu solo ${m === mAct ? 'activo' : ''}">${btn(its[0][1][0])}</div>`;
+      return `<div class="menu ${m === mAct ? 'activo' : ''}"><button class="mbtn" type="button" data-menu="${i}" aria-haspopup="true" aria-expanded="false">${ic} ${m} <span class="flecha">▾</span></button>
+        <div class="panel">${its.map(([sec, items]) => `<div class="sec">${sec ? `<h4>${esc(sec)}</h4>` : ''}${items.map(k => btn(k, true)).join('')}</div>`).join('')}</div></div>`;
+    }).join('');
+  }
+  function migas() {
+    const u = ubicacion(st.tab), t = TABS.find(x => x[0] === st.tab);
+    return st.tab === 'inicio' ? '' : `<div class="migas">${esc(u[0])}${u[1] ? ` › ${esc(u[1])}` : ''} › <b>${esc(t ? t[1] : '')}</b></div>`;
+  }
+  // abrir y cerrar los menús desplegables
+  document.addEventListener('click', e => {
+    const b = e.target.closest('.mbtn');
+    const abiertos = $$('.menu.abierto');
+    if (b) {
+      const m = b.parentElement, estaba = m.classList.contains('abierto');
+      abiertos.forEach(x => { x.classList.remove('abierto'); x.querySelector('.mbtn').setAttribute('aria-expanded', 'false'); });
+      if (!estaba) { m.classList.add('abierto'); b.setAttribute('aria-expanded', 'true'); }
+      return;
+    }
+    if (!e.target.closest('.menu .panel')) abiertos.forEach(x => x.classList.remove('abierto'));
+  });
+  document.addEventListener('mouseover', e => {
+    const b = e.target.closest('.mbtn'); if (!b) return;
+    const abierto = document.querySelector('.menu.abierto');
+    if (abierto && abierto !== b.parentElement) { abierto.classList.remove('abierto'); b.parentElement.classList.add('abierto'); }
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') $$('.menu.abierto').forEach(x => x.classList.remove('abierto')); });
 
   let renderizando = false;
   function render() {
@@ -84,12 +143,11 @@
     $('#selCliente').innerHTML = db.clientes.length
       ? db.clientes.map(c => `<option value="${c.id}" ${c.id === db.activo ? 'selected' : ''}>${esc(c.razon)} (${esc(c.ruc)})</option>`).join('')
       : '<option value="">— cree un cliente —</option>';
-    if (!S.cliente()) st.tab = 'clientes';
+    if (!S.cliente() && st.tab !== 'inicio') st.tab = 'clientes';
     const ps = $('#selPeriodo'); if (ps && ps.value !== st.periodo) ps.value = st.periodo;
-    const visibles = tabsVisibles();
-    $('#tabs').innerHTML = GRUPOS.map(g => { const ts = visibles.filter(t => t[2] === g); return ts.length ? `<span class="grupo"><span class="glabel">${g}</span>${ts.map(([k, n]) => `<button data-tab="${k}" class="${st.tab === k ? 'active' : ''}" ${!S.cliente() && k !== 'clientes' ? 'disabled' : ''}>${n}</button>`).join('')}</span>` : ''; }).join('');
+    dibujarMenu();
     const v = VISTAS[st.tab];
-    $('#main').innerHTML = v.html();
+    $('#main').innerHTML = migas() + v.html();
     if (v.bind) v.bind();
   }
 
@@ -1058,7 +1116,7 @@
   /* ---------- contexto para módulos adicionales (app-ext.js) ---------- */
   window.App = {
     C, S, X, PD, $, $$, esc, fmt, fmtZ, fmt2, fd, hoy, MESES, TIPOS_DOC, st, toast, datos, cfg, refrescarPlan, nombreCta, ctaValida,
-    pedirArchivo, slug, cliente, render, bloqueado, VISTAS, TABS, GRUPOS, ESENCIALES, KEY_MENU,
+    pedirArchivo, slug, cliente, render, bloqueado, VISTAS, TABS, GRUPOS, ESENCIALES, KEY_MENU, MENU, ubicacion, DESC,
     get plan() { return plan; },
     registrar(clave, nombre, grupo, vista, despuesDe) {
       VISTAS[clave] = vista;

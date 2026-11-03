@@ -39,7 +39,8 @@ Los datos quedan guardados en el navegador; use **Clientes → Descargar respald
 ## Uso diario
 
 - **Inicio**: indicadores del mes, tareas con su estado, alertas automáticas y resumen de todos los clientes.
-- **Período único** en la barra superior; **Ctrl + K** para ir a cualquier pantalla; **menú simple** personalizable.
+- **Menús desplegables** por operación y por impuesto: Cliente · Operaciones (comprobantes, contabilidad, existencias, personal) · Tesorería · Impuestos (IVA, IRE, IRP, IDU) · Informes · Cierre. Cada opción con su descripción y la ruta ("migas") arriba de cada pantalla.
+- **Período único** en la barra superior; **Ctrl + K** para ir a cualquier pantalla; los módulos que no use se ocultan en Inicio → Personalizar menú.
 - **Form. 120**: ayuda por casilla resumida del instructivo oficial de la DNIT y **proforma imprimible**.
 
 ## Cierre contable e inventario
@@ -51,6 +52,9 @@ Los datos quedan guardados en el navegador; use **Clientes → Descargar respald
 | **Asientos de cierre del ejercicio** | Se marcan por ejercicio y se recalculan solos: **previsión para incobrables** (saldos vencidos > N días al %), **provisión de vacaciones** (12/18/30 días según antigüedad), **impuesto a la renta** del régimen del cliente (compensa anticipos y retenciones de IRE) y **reserva legal** (5% de la utilidad hasta el 20% del capital, al inicio del ejercicio siguiente). |
 | **Apertura y saldos iniciales** | Los saldos pasan solos de un ejercicio a otro. El Libro Diario muestra los asientos de **apertura, refundición y cierre**. Importación de **saldos iniciales** desde Excel (Código, Cuenta, Debe, Haber o Saldo) para clientes que vienen de otro sistema. |
 | **Libros rubricados** | **Libro Diario** (con "van / vienen"), **Libro Mayor** y **Libro Inventario** (cada rubro con sus cuentas, saldos de clientes y proveedores, mercaderías valorizadas, bienes de uso y estado de resultados) en hojas A4 con **folio inicial configurable** y firmas del representante legal y del contador, listos para imprimir o guardar en PDF. |
+| **IRP – Form. 515** | Servicios personales, con todas las casillas del formulario (rubros 1 a 5 y anexo de préstamos/remanentes y familiares a cargo): topes de egresos, inmueble para vivienda con pérdida arrastrable, compensación limitada al 20%, tramos 8/9/10%. Sugiere ingresos, egresos, IPS patronal y retenciones desde la contabilidad. Ayuda por casilla y proforma imprimible. |
+| **IRP – Form. 516** | Rentas y ganancias del capital (versión 2): se carga cada operación y el sistema calcula renta real, presunta (30%) y la menor, agrupando por incisos; regalías al 70%, otras rentas y liquidación al 8% (casillas 76, 107, 120, 122–132). |
+| **IDU** | Distribución de dividendos con su retención (pantalla propia). |
 | **IRE por régimen** | **GENERAL** (Form. 500), **SIMPLE** (renta real = ingresos − egresos, o presunta como % de los ingresos, con comparación de cuál conviene) y **RESIMPLE** (cuota fija mensual según los ingresos del ejercicio anterior). Alertas cuando los ingresos superan el tope del régimen. |
 
 ## Trabajo en equipo: servidor con usuarios y respaldos

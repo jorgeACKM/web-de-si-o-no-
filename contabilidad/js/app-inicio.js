@@ -110,21 +110,22 @@
           <td class="c">${x.rg90 ? '✔' : '—'}</td><td class="c">${x.cerrado ? '🔒 cerrado' : 'abierto'}</td><td>${c.id === cli.id ? '' : `<button class="mini" data-cli="${c.id}">Trabajar</button>`}</td></tr>`; }).join('')}
         </tbody></table></div></section>
       <section class="card"><details><summary><b>Personalizar menú</b> – elija qué módulos ver</summary>
-        <p class="muted">El menú simple muestra lo esencial para llevar la contabilidad mensual. Active los módulos que use (inventario, sueldos, bancos, bienes de uso…).</p>
+        <p class="muted">Desmarque los módulos que no use para que no aparezcan en los menús desplegables. "Menú simple" deja solo lo esencial para la contabilidad mensual.</p>
         <div class="acciones"><button id="mn-simple">Menú simple</button> <button id="mn-todo">Mostrar todo</button></div>
-        <div class="menu-cfg">${A.GRUPOS.filter(g => g !== 'Inicio').map(g => `<div><b>${g}</b>${A.TABS.filter(t => t[2] === g).map(([k, n]) => `<label class="chk"><input type="checkbox" data-mn="${k}" ${menuActual().includes(k) ? 'checked' : ''} ${k === 'clientes' ? 'disabled' : ''}> ${n}</label>`).join('')}</div>`).join('')}</div>
+        <div class="menu-cfg">${A.MENU.filter(m => m[0] !== 'Inicio').map(([m, ic, secs]) => `<div><b>${ic} ${m}</b>${secs.flatMap(x => x[1]).filter((k, i, a) => a.indexOf(k) === i).map(k => { const t = A.TABS.find(x => x[0] === k); return t ? `<label class="chk"><input type="checkbox" data-mn="${k}" ${menuActual().includes(k) ? 'checked' : ''} ${k === 'clientes' ? 'disabled' : ''}> ${t[1]}</label>` : ''; }).join('')}</div>`).join('')}</div>
       </details></section>`;
     },
     bind() {
       $$('[data-ir]').forEach(b => b.onclick = () => ir(b.dataset.ir));
       $$('[data-cli]').forEach(b => b.onclick = () => { S.db().activo = b.dataset.cli; S.save(); A.refrescarPlan(); render(); });
-      const guardarMenu = lista => { try { localStorage.setItem(A.KEY_MENU, JSON.stringify(lista)); } catch (e) { /* */ } render(); };
+      // se guardan los módulos OCULTOS, para que los módulos nuevos aparezcan siempre
+      const guardarMenu = visibles => { const ocultos = A.TABS.map(t => t[0]).filter(k => !visibles.includes(k)); try { localStorage.setItem(A.KEY_MENU, JSON.stringify(ocultos)); } catch (e) { /* */ } render(); };
       if ($('#mn-simple')) $('#mn-simple').onclick = () => guardarMenu(A.ESENCIALES);
-      if ($('#mn-todo')) $('#mn-todo').onclick = () => guardarMenu(A.TABS.map(t => t[0]));
+      if ($('#mn-todo')) $('#mn-todo').onclick = () => { try { localStorage.removeItem(A.KEY_MENU); } catch (e) { /* */ } render(); };
       $$('[data-mn]').forEach(i => i.onchange = () => guardarMenu($$('[data-mn]').filter(x => x.checked).map(x => x.dataset.mn).concat(['inicio', 'clientes'])));
     }
   });
-  function menuActual() { try { const m = JSON.parse(localStorage.getItem(A.KEY_MENU)); if (Array.isArray(m)) return m; } catch (e) { /* */ } return A.ESENCIALES; }
+  function menuActual() { let oc = []; try { const m = JSON.parse(localStorage.getItem(A.KEY_MENU)); if (Array.isArray(m)) oc = m; } catch (e) { /* */ } return A.TABS.map(t => t[0]).filter(k => !oc.includes(k)); }
   // Inicio primero en el menú
   const ti = A.TABS.findIndex(t => t[0] === 'inicio'); if (ti > 0) A.TABS.unshift(A.TABS.splice(ti, 1)[0]);
 
@@ -190,9 +191,11 @@
     const SIN = { f120: 'iva formulario 120 debito credito', f500: 'ire renta 500 simple resimple', rg90: 'marangatu registro comprobantes', tc: 'dolar cotizacion', cierreej: 'saldos iniciales reserva vacaciones prevision', libros: 'diario mayor inventario rubricar pdf', tesoreria: 'cobros pagos cuenta corriente antiguedad', bancos: 'extracto conciliacion', irpidu: 'irp idu dividendos personal' };
     const pintar = () => {
       const q = norm(inp.value.trim());
-      lista = A.TABS.filter(([k, n, g]) => !q || norm(`${n} ${g} ${SIN[k] || ''}`).includes(q));
+      lista = A.TABS.filter(([k, n, g]) => !q || q.split(/\s+/).every(w => norm(`${n} ${g} ${(A.ubicacion ? A.ubicacion(k) : []).join(' ')} ${(A.DESC || {})[k] || ''} ${SIN[k] || ''}`).includes(w)));
+      // primero las pantallas cuyo nombre contiene lo buscado, luego las que lo tienen en sección o descripción
+      if (q) lista.sort((x, y) => (norm(y[1]).includes(q) ? 2 : norm(`${y[1]} ${SIN[y[0]] || ''}`).split(/\s+/).some(w => w.startsWith(q)) ? 1 : 0) - (norm(x[1]).includes(q) ? 2 : norm(`${x[1]} ${SIN[x[0]] || ''}`).split(/\s+/).some(w => w.startsWith(q)) ? 1 : 0));
       sel = Math.min(sel, Math.max(0, lista.length - 1));
-      ul.innerHTML = lista.map(([k, n, g], i) => `<li class="${i === sel ? 'sel' : ''}" data-k="${k}"><b>${esc(n)}</b> <small class="muted">${g}</small></li>`).join('') || '<li class="muted">Sin resultados</li>';
+      ul.innerHTML = lista.map(([k, n, g], i) => `<li class="${i === sel ? 'sel' : ''}" data-k="${k}"><b>${esc(n)}</b> <small class="muted">${esc(A.ubicacion ? A.ubicacion(k).filter(Boolean).join(' › ') : g)}</small></li>`).join('') || '<li class="muted">Sin resultados</li>';
       $$('li[data-k]', ul).forEach(li => li.onclick = () => { cerrar(); ir(li.dataset.k); });
     };
     const cerrar = () => div.remove();

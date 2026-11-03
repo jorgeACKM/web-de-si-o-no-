@@ -34,8 +34,11 @@ externo o a la nube una vez por semana.
   balance que no cuadra, vencimientos de la semana). Abajo, un resumen de todos los clientes.
 - El **período** se elige una sola vez arriba y vale para todas las pantallas.
 - **Ctrl + K** (o el botón "Ir a…") busca cualquier pantalla escribiendo su nombre.
-- El menú arranca en modo simple. En **Inicio → Personalizar menú** se activan los módulos
-  avanzados (inventario, sueldos, bancos, bienes de uso, asientos recurrentes, IRP/IDU).
+- El menú está ordenado en desplegables: **Cliente**, **Operaciones**, **Tesorería**,
+  **Impuestos** (IVA, IRE, IRP e IDU), **Informes** y **Cierre**. Cada opción tiene una
+  descripción corta. En **Inicio → Personalizar menú** puede ocultar los módulos que no use.
+- **IRP**: Impuestos → IRP → Form. 515 (servicios personales) o Form. 516 (rentas del capital).
+  En el 515, las casillas en azul son valores sugeridos por la contabilidad; escriba encima para cambiarlos.
 - En el **Form. 120**, toque el número de una casilla para ver qué va ahí según el instructivo
   y de dónde lo toma el sistema. **Imprimir proforma** arma la hoja para transcribir en Marangatu.
 
